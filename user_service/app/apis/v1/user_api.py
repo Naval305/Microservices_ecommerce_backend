@@ -1,33 +1,56 @@
+from flask import current_app
 from flask.views import MethodView
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import text
 
+from app.main import db
 from app.blueprints.user_blueprints import blp
 from app.interfaces.user_interface import BaseApiView
 from app.schemas.custom_response import CustomResponse
-from app.utils.users import generate_jwt, validate_user_data
+from app.utils.users import generate_tokens, login_required, validate_user_data
 from app.services.user_service import UserService
-from app.schemas.user_schemas import CreateUserSchema, UserListSchema, UserLoginSchema
+from app.schemas.user_schemas import CreateUserSchema, PaginationSchema, UserListResponseSchema, UserLoginSchema
+
+
+@blp.route("/healthz", methods=["GET"])
+class HealthCheck(BaseApiView):
+
+    def get(self):
+        return {"status": "ok"}, 200
+
+
+@blp.route("/readyz", methods=["GET"])
+class ReadinessCheck(BaseApiView):
+
+    def get(self):
+        try:
+            db.session.execute(text("SELECT 1"))
+            return {"status": "ready"}, 200
+        except Exception:
+            current_app.logger.exception("Readiness check failed")
+            return {"status": "not_ready"}, 503
 
 
 @blp.route("/list", methods=["GET"])
 class GetUserList(BaseApiView):
 
-    @blp.response(200, UserListSchema(many=True))
-    def get(self):
+    @login_required(staff_only=True)
+    @blp.arguments(PaginationSchema, location="query")
+    @blp.response(200, UserListResponseSchema)
+    def get(self, args):
         """Get user list"""
-
-        try:
-            users = UserService().get_users()
-
-            return users
-        except SQLAlchemyError as e:
-            return CustomResponse.error(
-                message="Database error", status_code=500, exception=e
-            )
-        except Exception as e:
-            return CustomResponse.error(
-                message="Internal server error", status_code=500, exception=e
-            )
+        users = UserService().get_users(
+            page=args["page"],
+            per_page=args["per_page"],
+        )
+        return {
+            "data": users.items,
+            "pagination": {
+                "page": users.page,
+                "per_page": users.per_page,
+                "total": users.total,
+                "pages": users.pages,
+            },
+        }
 
 
 @blp.route("/registration", methods=["POST"])
@@ -37,27 +60,19 @@ class Registration(BaseApiView):
     def post(self, data):
         """Register a new user"""
 
-        try:
-            validation_result = validate_user_data(data)
-            if validation_result is not None:
-                return validation_result
+        validation_result = validate_user_data(data)
+        if validation_result is not None:
+            return validation_result
 
-            new_user_id = UserService().create_user(
-                data["first_name"], data["last_name"], data["email"], data["password"]
-            )
-            return CustomResponse.success(
-                message="User created successfully",
-                data={"user_id": new_user_id},
-                status_code=201,
-            )
-        except SQLAlchemyError as e:
-            return CustomResponse.error(
-                message="Database error", status_code=500, exception=e
-            )
-        except Exception as e:
-            return CustomResponse.error(
-                message="Internal server error", status_code=500, exception=e
-            )
+        new_user_id = UserService().create_user(
+            data["first_name"], data["last_name"], data["email"], data["password"]
+        )
+        current_app.logger.info("User created")
+        return CustomResponse.success(
+            message="User created successfully",
+            data={"user_id": new_user_id},
+            status_code=201,
+        )
 
 
 @blp.route("/login", methods=["POST"])
@@ -68,30 +83,19 @@ class Login(MethodView):
 
     @blp.arguments(UserLoginSchema)
     def post(self, auth):
-        """User login"""
-        try:
-            email = auth.get("email")
-            password = auth.get("password")
+        email = auth["email"]
+        password = auth["password"]
 
-            if not auth or not email or not password:
-                return CustomResponse.error(
-                    message="Missing email or password", status_code=401
-                )
+        user = self.user_service.check_user_existance(email=email)
 
-            user = self.user_service.check_user_existance(email=email)
-            if user is None:
-                return CustomResponse.error(
-                    message="Could not verify, User does not exist", status_code=401
-                )
-
-            if self.user_service.check_user_password(user, password):
-                token = generate_jwt(user)
-                return CustomResponse.success(data={"token": token})
-
+        if user is None or not self.user_service.check_user_password(user, password):
             return CustomResponse.error(
-                message="Could not verify, Incorrect password", status_code=403
+                code="invalid_credentials",
+                message="Invalid email or password.",
+                status_code=401,
             )
-        except Exception as e:
-            return CustomResponse.error(
-                message="Internal server error", status_code=500, exception=e
-            )
+
+        tokens = generate_tokens(user)
+        return CustomResponse.success(
+            data={"access_token": tokens["access_token"], "refresh_token": tokens["refresh_token"]}
+        )

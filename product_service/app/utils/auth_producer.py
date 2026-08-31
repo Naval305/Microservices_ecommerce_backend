@@ -36,10 +36,11 @@ class ConnectUserService:
         )
 
 
-    def publish_token_to_queue(self, request: Request):
+    def publish_token_to_queue(self, token):
+        breakpoint()
         self.channel.basic_publish(
             exchange=rabbitmq_token_exchange,
             routing_key=rabbitmq_token_routing_key,
-            body=json.dumps({"Authorization": request.headers.get("Authorization")}),
+            body=json.dumps({"Authorization": token.credentials}),
         )
         return get_authentication()

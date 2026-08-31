@@ -49,9 +49,7 @@ class AuthenticateToken:
         )
 
     def callback(self, channel, method, properties, body) -> None:
-        print("yes")
-        data = authenticate(body)
-        print(data)
+        data, status = authenticate(body)
         self.channel.basic_publish(
             exchange=rabbitmq_feedback_exchange,
             routing_key=rabbitmq_feedback_routing_key,
@@ -62,7 +60,7 @@ class AuthenticateToken:
         self.channel.basic_consume(
             queue=rabbitmq_token_queue, on_message_callback=self.callback, auto_ack=True
         )
-        print("Consuming...")
+
 
         try:
             self.channel.start_consuming()
@@ -70,7 +68,6 @@ class AuthenticateToken:
             self.channel.stop_consuming()
             self.connection.close()
         except Exception as e:
-            print("An error occurred during message consumption: %s", str(e))
             self.connection.close()
             raise
 

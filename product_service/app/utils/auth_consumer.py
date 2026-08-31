@@ -37,7 +37,7 @@ class ConnectUserService:
         )
 
     def callback(self, channel, method, properties, body) -> None:
-        from app.utils.redis import init_sync_redis
+        from app.utils.redis_config import init_sync_redis
         print(body)
         redis = init_sync_redis()
         redis.set("verified", body, 60)

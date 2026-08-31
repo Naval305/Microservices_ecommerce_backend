@@ -3,6 +3,8 @@ import os
 import sys
 from typing import List
 
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+
 sys.path.append(f"{os.getcwd()}/fastapi_env/lib/python3.10/site-packages")
 
 from fastapi import APIRouter, BackgroundTasks, Request, Depends
@@ -19,6 +21,7 @@ from app.services.product_services import product_list, product_item
 router = APIRouter()
 connect_user_service = ConnectUserService()
 
+security_scheme = HTTPBearer()
 
 @router.post("/create")
 @cache(timeout=300)
@@ -94,12 +97,11 @@ async def create_product(
 async def get_product_list(
     request: Request,
     background_tasks: BackgroundTasks,
-    authenticated: bool = Depends(connect_user_service.publish_token_to_queue),
+    token: HTTPAuthorizationCredentials = Depends(security_scheme),
+    authenticated=Depends(connect_user_service.publish_token_to_queue),
 ):
 
     try:
-        if not authenticated:
-            return CustomResponse(status_code=401, message="Unauthenticated")
 
         products = await product_list()
         for item in products:
