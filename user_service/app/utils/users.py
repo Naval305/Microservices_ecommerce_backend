@@ -6,12 +6,13 @@ from uuid import uuid4
 import jwt
 from flask import current_app, g, request
 
+from app.errors.exceptions import EmailAlreadyExistsError
 from app.services.user_service import UserService
 
 
 def validate_user_data(data):
     if UserService().check_user_existance(data["email"]):
-        return {"message": "Email address already in use"}, 409
+        raise EmailAlreadyExistsError()
 
     return None
 

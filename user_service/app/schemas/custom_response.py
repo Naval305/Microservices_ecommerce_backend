@@ -12,10 +12,12 @@ class CustomResponse:
         return make_response(jsonify(response_data), status_code)
 
     @staticmethod
-    def error(message="Error", status_code=400, code="error"):
+    def error(message="Error", status_code=400, code="error", errors=None):
         response_data = {
             "status": "error",
             "code": code,
             "message": message,
         }
+        if errors is not None:
+            response_data["errors"] = errors
         return make_response(jsonify(response_data), status_code)
