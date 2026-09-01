@@ -4,13 +4,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 
 class Config:
     DEBUG = False
     TESTING = False
 
-    PRIVATE_KEY = Path("keys/private.pem").read_text()
-    PUBLIC_KEY = Path("keys/public.pem").read_text()
+    PRIVATE_KEY = (BASE_DIR / "keys" / "private.pem").read_text()
+    PUBLIC_KEY = (BASE_DIR / "keys" / "public.pem").read_text()
     REFRESH_SECRET_KEY = os.environ["REFRESH_SECRET_KEY"]
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False

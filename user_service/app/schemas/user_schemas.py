@@ -7,11 +7,11 @@ class CreateUserSchema(Schema):
 
     first_name = fields.String(
         required=True,
-        validate=validate.Length(min=1, max=100),
+        validate=validate.Length(min=1, max=30),
     )
     last_name = fields.String(
         required=True,
-        validate=validate.Length(min=1, max=100),
+        validate=validate.Length(min=1, max=50),
     )
     email = fields.Email(required=True)
     password = fields.String(

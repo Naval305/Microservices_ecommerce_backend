@@ -1,5 +1,6 @@
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy.orm import validates
 
 from ..main import db
 
@@ -20,6 +21,13 @@ class User(db.Model, UserMixin):
     # fb_token = db.Column(db.String(100), nullable=True)
     # twitter_token = db.Column(db.String(100), nullable=True)
     # google_token = db.Column(db.String(100), nullable=True)
+    
+
+    @validates("email")
+    def normalize_email(self, key, value):
+        if value:
+            return value.strip().lower()
+        return value
 
     # Define a property for the full name
     @property
