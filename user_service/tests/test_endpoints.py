@@ -1,42 +1,3 @@
-import os
-import sys
-
-import pytest
-
-sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
-
-from app.main import create_app, db
-
-
-@pytest.fixture()
-def app():
-    app = create_app(
-        {
-            "TESTING": True,
-            "PROPAGATE_EXCEPTIONS": False,
-            "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
-        }
-    )
-
-    @app.get("/raise-unexpected-error")
-    def raise_unexpected_error():
-        raise RuntimeError("sensitive internal detail")
-
-    with app.app_context():
-        db.create_all()
-
-    yield app
-
-    with app.app_context():
-        db.session.remove()
-        db.drop_all()
-
-
-@pytest.fixture()
-def client(app):
-    return app.test_client()
-
-
 def test_unknown_route_returns_404(client):
     response = client.get("/unknown-route")
 
@@ -100,3 +61,24 @@ def test_unexpected_error_returns_500_without_internal_detail(client):
     assert response.status_code == 500
     assert body["code"] == "internal_server_error"
     assert "sensitive internal detail" not in str(body)
+
+
+def test_refresh_token_200(client, auth_tokens):
+    response = client.post(
+        "/api/users/refresh",
+        headers={
+            "Authorization": f"Bearer {auth_tokens['refresh_token']}"
+        },
+    )
+    print(response.get_json())
+    assert response.status_code == 200
+    assert response.get_json()["message"] == "Success"
+
+
+def test_refresh_token_with_invalid_token_returns_401(client):
+    response = client.post(
+        "/api/users/refresh", headers={"Authorization": "Bearer invalidtoken"}
+    )
+    body = response.get_json()
+    assert response.status_code == 401
+    assert body["code"] == "invalid_refresh_token"

@@ -26,14 +26,12 @@ class Config:
     RABBITMQ_USER = os.getenv("RABBITMQ_USER")
     RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
 
-
 class DevelopmentConfig(Config):
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.getenv('DB_NAME', 'app')}.db"
-
+    SQLALCHEMY_DATABASE_URI = f"sqlite:///{BASE_DIR / 'db' / os.getenv('DB_NAME', 'user_service')}.db"
 
 class ProductionConfig(Config):
-    SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.getenv('DB_NAME', 'app')}.db"
+    SQLALCHEMY_DATABASE_URI = f"sqlite:///{BASE_DIR / 'db' / os.getenv('DB_NAME', 'user_service')}.db"
 
 
 class TestingConfig(Config):

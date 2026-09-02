@@ -8,12 +8,15 @@ from werkzeug.exceptions import HTTPException
 from app.errors.handlers import (
     handle_email_already_exists,
     handle_http_exception,
+    handle_token_reuse,
     handle_unexpected_error,
     handle_validation_error,
 )
 from config.config import app_config
-from app.errors.exceptions import EmailAlreadyExistsError
+from app.errors.exceptions import EmailAlreadyExistsError, TokenReuseDetectedError
 
+import os
+os.environ["PYTHONBREAKPOINT"] = "ipdb.set_trace"
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -32,6 +35,7 @@ def create_app(test_config=None):
     app.register_error_handler(HTTPException, handle_http_exception)
     app.register_error_handler(ValidationError, handle_validation_error)
     app.register_error_handler(EmailAlreadyExistsError, handle_email_already_exists)
+    app.register_error_handler(TokenReuseDetectedError, handle_token_reuse)
     app.register_error_handler(Exception, handle_unexpected_error)
 
     from .blueprints.user_blueprints import register_routes

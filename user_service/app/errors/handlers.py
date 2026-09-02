@@ -49,3 +49,11 @@ def handle_email_already_exists(error):
         message="An account with this email already exists.",
         status_code=409,
     )
+
+
+def handle_token_reuse(error):
+    return CustomResponse.error(
+        code="session_compromised",
+        message="Your session was compromised. Please log in again.",
+        status_code=401,
+    )

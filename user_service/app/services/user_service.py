@@ -44,6 +44,9 @@ class UserService:
         return user.check_password(password)
 
     @staticmethod
-    def is_staff(email):
-        user = UserService().check_user_existance(email)
+    def is_staff(user_id):
+        user = db.session.get(User, user_id)
         return user.is_staff if user else False
+
+    def get_user_by_id(self, user_id):
+        return db.session.get(User, user_id)

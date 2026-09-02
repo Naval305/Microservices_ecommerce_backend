@@ -6,7 +6,7 @@ from app.main import db
 from app.blueprints.user_blueprints import blp
 from app.interfaces.user_interface import BaseApiView
 from app.schemas.custom_response import CustomResponse
-from app.utils.users import generate_tokens, login_required, validate_user_data
+from app.utils.users import generate_tokens, login_required, generate_new_access_token, validate_user_data
 from app.services.user_service import UserService
 from app.schemas.user_schemas import CreateUserSchema, PaginationSchema, UserListResponseSchema, UserLoginSchema
 
@@ -95,7 +95,22 @@ class Login(MethodView):
                 status_code=401,
             )
 
-        tokens = generate_tokens(user)
-        return CustomResponse.success(
-            data={"access_token": tokens["access_token"], "refresh_token": tokens["refresh_token"]}
-        )
+        result = generate_tokens(user)
+        return CustomResponse.success(data=result)
+
+@blp.route("/refresh", methods=["POST"])
+class RefreshToken(MethodView):
+
+    def post(self):
+        """Refresh access token using refresh token"""
+
+        result, status = generate_new_access_token()
+
+        if status != 200:
+            return CustomResponse.error(
+                code="invalid_refresh_token",
+                message="Invalid or expired refresh token.",
+                status_code=401,
+            )
+
+        return CustomResponse.success(data=result)
