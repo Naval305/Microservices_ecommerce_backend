@@ -1,10 +1,12 @@
-from flask import jsonify, make_response
+from typing import Any
+
+from flask import Response, jsonify, make_response
 
 
 class CustomResponse:
     @staticmethod
-    def success(data=None, message="Success", status_code=200):
-        response_data = {
+    def success(data: Any = None, message: str = "Success", status_code: int = 200) -> Response:
+        response_data: dict[str, object] = {
             "status": "success",
             "message": message,
             "data": data,
@@ -12,8 +14,13 @@ class CustomResponse:
         return make_response(jsonify(response_data), status_code)
 
     @staticmethod
-    def error(message="Error", status_code=400, code="error", errors=None):
-        response_data = {
+    def error(
+        message: str = "Error",
+        status_code: int = 400,
+        code: str = "error",
+        errors: Any = None,
+    ) -> Response:
+        response_data: dict[str, object] = {
             "status": "error",
             "code": code,
             "message": message,

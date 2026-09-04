@@ -1,20 +1,22 @@
-from flask import current_app
+from typing import Any
+
+from flask import Response, current_app
 from werkzeug.exceptions import HTTPException
 
 from app.schemas.custom_response import CustomResponse
 
 
-def _error_code(error):
+def _error_code(error) -> str:
     return error.name.lower().replace(" ", "_")
 
 
-def handle_http_exception(error: HTTPException):
-    data = getattr(error, "data", {}) or {}
-    errors = data.get("errors") or data.get("messages")
-    message = data.get("message") or error.description
-    code = "validation_error" if errors else _error_code(error)
+def handle_http_exception(error: HTTPException) -> Response:
+    data: Any | dict[Any, Any] = getattr(error, "data", {}) or {}
+    errors: Any | None = data.get("errors") or data.get("messages")
+    message: Any | str | None = data.get("message") or error.description
+    code: str = "validation_error" if errors else _error_code(error)
 
-    response = CustomResponse.error(
+    response: Response = CustomResponse.error(
         code=code,
         message=message,
         status_code=error.code,
@@ -24,7 +26,7 @@ def handle_http_exception(error: HTTPException):
     return response
 
 
-def handle_validation_error(error):
+def handle_validation_error(error) -> Response:
     return CustomResponse.error(
         code="validation_error",
         message="Invalid request data.",
@@ -33,7 +35,7 @@ def handle_validation_error(error):
     )
 
 
-def handle_unexpected_error(error):
+def handle_unexpected_error(error) -> Response:
     current_app.logger.exception("Unhandled application exception")
 
     return CustomResponse.error(
@@ -43,7 +45,7 @@ def handle_unexpected_error(error):
     )
 
 
-def handle_email_already_exists(error):
+def handle_email_already_exists(error) -> Response:
     return CustomResponse.error(
         code="email_already_exists",
         message="An account with this email already exists.",
@@ -51,7 +53,7 @@ def handle_email_already_exists(error):
     )
 
 
-def handle_token_reuse(error):
+def handle_token_reuse(error) -> Response:
     return CustomResponse.error(
         code="session_compromised",
         message="Your session was compromised. Please log in again.",
@@ -59,7 +61,7 @@ def handle_token_reuse(error):
     )
 
 
-def handle_invalid_token(error):
+def handle_invalid_token(error) -> Response:
     return CustomResponse.error(
         code="invalid_token",
         message=str(error),
@@ -67,7 +69,7 @@ def handle_invalid_token(error):
     )
 
 
-def handle_unauthorized(error):
+def handle_unauthorized(error) -> Response:
     return CustomResponse.error(
         code="unauthorized",
         message="You are not authorized to access this resource.",
@@ -75,7 +77,7 @@ def handle_unauthorized(error):
     )
 
 
-def handle_user_not_found(error):
+def handle_user_not_found(error) -> Response:
     return CustomResponse.error(
         code="user_not_found",
         message="The requested user was not found.",
@@ -83,7 +85,7 @@ def handle_user_not_found(error):
     )
 
 
-def ratelimit_handler(e):
+def ratelimit_handler(e) -> Response:
     return CustomResponse.error(
         code="rate_limit_exceeded",
         message="Too many requests. Please try again later.",
@@ -91,7 +93,7 @@ def ratelimit_handler(e):
     )
 
 
-def handle_redis_unavailable(error):
+def handle_redis_unavailable(error) -> Response:
     current_app.logger.error("Redis unavailable: %s", error)
     return CustomResponse.error(
         code="service_unavailable",

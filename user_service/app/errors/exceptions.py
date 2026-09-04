@@ -29,6 +29,6 @@ class UserNotFoundError(Exception):
 
 
 class RedisUnavailableError(Exception):
-    """Raised when Redis is unreachable/times out for an operation that can't safely degrade silently."""
+    """Raised when Redis is unavailable for a non-degradable operation."""
 
     pass

@@ -1,9 +1,11 @@
+from collections.abc import Callable, Mapping
 from datetime import UTC, datetime, timedelta
 from functools import wraps
+from typing import Any, ParamSpec, TypeVar
 from uuid import uuid4
 
 import jwt
-from flask import current_app, g, request
+from flask import Response, current_app, g, request
 
 from app.errors.exceptions import (
     EmailAlreadyExistsError,
@@ -12,27 +14,28 @@ from app.errors.exceptions import (
     UserNotFoundError,
 )
 from app.services.session_service import rotate_refresh_token
-from app.services.user_service import UserContext
+from app.services.user_service import User, UserContext
 from app.services.user_status_service import get_cached_user_active_status, set_user_active_status
 
+P = ParamSpec("P")
+R = TypeVar("R")
 
-def validate_user_data(data):
+
+def validate_user_data(data: Mapping[str, Any]) -> None:
     if UserContext().check_user_existance(data["email"]):
         raise EmailAlreadyExistsError()
 
-    return None
 
-
-def get_auth_header():
-    auth_header = request.headers.get("Authorization", "")
+def get_auth_header() -> None | str:
+    auth_header: str = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
         return None
     return auth_header.split(" ")[-1]
 
 
-def generate_access_token(user):
-    now = datetime.now(UTC)
-    payload = {
+def generate_access_token(user: User) -> str:
+    now: datetime = datetime.now(UTC)
+    payload: dict[str, Any] = {
         "sub": str(user.id),
         "email": user.email,
         "type": "access",
@@ -45,9 +48,11 @@ def generate_access_token(user):
     return jwt.encode(payload, current_app.config["PRIVATE_KEY"], algorithm="RS256")
 
 
-def generate_refresh_token(user, old_refresh_token_info=None):
-    now = datetime.now(UTC)
-    payload = {
+def generate_refresh_token(
+    user: User, old_refresh_token_info: Mapping[str, Any] | None = None
+) -> str:
+    now: datetime = datetime.now(UTC)
+    payload: dict[str, Any] = {
         "sub": str(user.id),
         "type": "refresh",
         "jti": str(uuid4()),  # unique id — lets you revoke this one token later
@@ -57,38 +62,38 @@ def generate_refresh_token(user, old_refresh_token_info=None):
         "nbf": now,
         "exp": now + timedelta(days=7),
     }
-    token = jwt.encode(payload, current_app.config["REFRESH_SECRET_KEY"], algorithm="HS256")
+    token: str = jwt.encode(payload, current_app.config["REFRESH_SECRET_KEY"], algorithm="HS256")
     rotate_refresh_token(user, payload, old_refresh_token_info)
     return token
 
 
-def generate_tokens(user):
+def generate_tokens(user: User) -> dict[str, str]:
     return {
         "access_token": generate_access_token(user),
         "refresh_token": generate_refresh_token(user),
     }
 
 
-def authenticate(refresh_token=False):
+def authenticate(refresh_token: bool = False) -> dict[str, Any]:
     if refresh_token:
-        token = request.cookies.get("refresh_token")
+        token: str | None = request.cookies.get("refresh_token")
     else:
-        token = get_auth_header()
+        token: str | None = get_auth_header()
 
     if not token:
         raise InvalidTokenError("Missing or malformed token")
 
     if refresh_token:
-        key = current_app.config["REFRESH_SECRET_KEY"]
-        algo = ["HS256"]
+        key: str = current_app.config["REFRESH_SECRET_KEY"]
+        algo: list[str] = ["HS256"]
         token_type = "refresh"
     else:
-        key = current_app.config["PUBLIC_KEY"]
-        algo = ["RS256"]
+        key: str = current_app.config["PUBLIC_KEY"]
+        algo: list[str] = ["RS256"]
         token_type = "access"
 
     try:
-        payload = jwt.decode(
+        payload: dict[str, str] = jwt.decode(
             token,
             key,
             algorithms=algo,
@@ -96,9 +101,9 @@ def authenticate(refresh_token=False):
             audience="ecommerce-services",
         )
     except jwt.ExpiredSignatureError:
-        raise InvalidTokenError("Token has expired")
+        raise InvalidTokenError("Token has expired") from None
     except jwt.InvalidTokenError:
-        raise InvalidTokenError("Invalid token")
+        raise InvalidTokenError("Invalid token") from None
 
     if payload.get("type") != token_type:
         raise InvalidTokenError("Invalid token type")
@@ -106,22 +111,22 @@ def authenticate(refresh_token=False):
     return payload
 
 
-def is_user_active(user_id):
-    cached = get_cached_user_active_status(user_id)
+def is_user_active(user_id: int | str) -> bool:
+    cached: None | bool = get_cached_user_active_status(user_id)
     if cached is not None:
         return cached
-    user = UserContext(user_id).user
+    user: User | None = UserContext(user_id).user
     if not user:
         raise UserNotFoundError()
     set_user_active_status(user_id, user.is_active)
     return user.is_active
 
 
-def login_required(staff_only=False):
-    def decorator(f):
+def login_required(staff_only: bool = False) -> Callable[[Callable[P, R]], Callable[P, R]]:
+    def decorator(f: Callable[P, R]) -> Callable[P, R]:
         @wraps(f)
-        def wrapper(*args, **kwargs):
-            payload = authenticate()
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+            payload: dict[str, Any] = authenticate()
 
             if not is_user_active(payload["sub"]):
                 raise UnauthorizedError("Account is deactivated")
@@ -130,7 +135,7 @@ def login_required(staff_only=False):
             g.user_email = payload["email"]
 
             if staff_only:
-                user = UserContext(g.user_id).user
+                user: User | None = UserContext(g.user_id).user
                 if not user.is_staff:
                     raise UnauthorizedError("Unauthorized: Staff access required")
 
@@ -141,10 +146,10 @@ def login_required(staff_only=False):
     return decorator
 
 
-def generate_new_access_token():
-    payload = authenticate(refresh_token=True)  # raises on failure
+def generate_new_access_token() -> dict[str, str]:
+    payload: dict[str, str] = authenticate(refresh_token=True)  # raises on failure
 
-    user = UserContext(payload["sub"]).user
+    user: User | None = UserContext(payload["sub"]).user
     if not user:
         raise UserNotFoundError()
 
@@ -154,12 +159,12 @@ def generate_new_access_token():
     }
 
 
-def decode_refresh_token_jti():
+def decode_refresh_token_jti() -> str:
     try:
-        token = request.cookies.get("refresh_token")
+        token: str | None = request.cookies.get("refresh_token")
         if not token:
             raise InvalidTokenError("Missing refresh token")
-        payload = jwt.decode(
+        payload: dict[str, Any] = jwt.decode(
             token,
             current_app.config["REFRESH_SECRET_KEY"],
             algorithms=["HS256"],
@@ -168,7 +173,7 @@ def decode_refresh_token_jti():
             options={"verify_exp": False},  # logout should work even if it just expired
         )
     except jwt.InvalidTokenError:
-        raise InvalidTokenError("Invalid refresh token")
+        raise InvalidTokenError("Invalid refresh token") from None
 
     if payload.get("type") != "refresh":
         raise InvalidTokenError("Invalid token type")
@@ -176,7 +181,7 @@ def decode_refresh_token_jti():
     return payload["jti"]
 
 
-def attach_refresh_cookie(response, refresh_token):
+def attach_refresh_cookie(response: Response, refresh_token: str) -> Response:
     response.set_cookie(
         "refresh_token",
         refresh_token,
@@ -189,6 +194,6 @@ def attach_refresh_cookie(response, refresh_token):
     return response
 
 
-def clear_refresh_cookie(response):
+def clear_refresh_cookie(response: Response) -> Response:
     response.delete_cookie("refresh_token", path="/api/users")
     return response

@@ -34,7 +34,7 @@ db = SQLAlchemy()
 migrate = Migrate()
 
 
-def create_app(test_config=None):
+def create_app(test_config=None) -> Flask:
     app = Flask(__name__)
     app.config.from_object(app_config)
     app.config["PRIVATE_KEY"] = app.config["PRIVATE_KEY_PATH"].read_text()

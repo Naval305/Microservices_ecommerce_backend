@@ -1,0 +1,11 @@
+{
+    "python.analysis.includeAliasesFromUserFiles": true,
+    "python.analysis.enableTroubleshootMissingImports": true,
+    "python.analysis.typeCheckingMode": "standard",
+    "python.analysis.typeEvaluation.deprecateTypingAliases": true,
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.completeFunctionParens": true,
+    "python.analysis.inlayHints.functionReturnTypes": true,
+    "python.analysis.inlayHints.pytestParameters": true,
+    "python.analysis.inlayHints.variableTypes": true
+}

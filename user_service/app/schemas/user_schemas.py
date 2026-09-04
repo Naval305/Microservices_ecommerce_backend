@@ -3,7 +3,7 @@ from marshmallow import RAISE, Schema, fields, validate
 
 class CreateUserSchema(Schema):
     class Meta:
-        unknown = RAISE
+        unknown: str = RAISE
 
     first_name = fields.String(
         required=True,
@@ -23,7 +23,7 @@ class CreateUserSchema(Schema):
 
 class UserListSchema(Schema):
     class Meta:
-        unknown = RAISE
+        unknown: str = RAISE
 
     first_name = fields.String()
     last_name = fields.String()
@@ -32,7 +32,7 @@ class UserListSchema(Schema):
 
 class UserLoginSchema(Schema):
     class Meta:
-        unknown = RAISE
+        unknown: str = RAISE
 
     email = fields.Email(required=True)
     password = fields.String(

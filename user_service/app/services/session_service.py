@@ -1,11 +1,13 @@
 import logging
+from collections.abc import Mapping
+from typing import Any
 
-import redis
+from redis.exceptions import RedisError
 
 from app.errors.exceptions import RedisUnavailableError, TokenReuseDetectedError
 from app.extensions.redis_connection import redis_client
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 # These operations are the source of truth for refresh-token revocation, so a
 # Redis outage here must NOT fail silently (that would mean issuing/accepting
@@ -13,28 +15,28 @@ logger = logging.getLogger(__name__)
 # Instead we convert it into a clean, predictable RedisUnavailableError (503).
 
 
-def revoke_all_sessions(user_id):
-    user_sessions_key = f"user_sessions:{user_id}"
+def revoke_all_sessions(user_id: int | str) -> None:
+    user_sessions_key: str = f"user_sessions:{user_id}"
     try:
-        jtis = redis_client.smembers(
+        jtis: set[bytes | str] = redis_client.smembers(
             user_sessions_key
         )  # O(1) lookup, returns only THIS user's jtis
 
         for jti in jtis:
-            key = f"refresh_jti:{jti}"
+            key: str = f"refresh_jti:{jti}"
             if redis_client.exists(key):
                 redis_client.hset(key, "revoked", "1")
 
         redis_client.delete(user_sessions_key)
-    except redis.exceptions.RedisError as exc:
+    except RedisError as exc:
         logger.error("Redis unavailable while revoking sessions for user %s: %s", user_id, exc)
         raise RedisUnavailableError("Could not revoke sessions: Redis is unavailable") from exc
 
 
-def revoke_single_session(user_id, jti):
-    key = f"refresh_jti:{jti}"
+def revoke_single_session(user_id: int | str, jti: str) -> bool:
+    key: str = f"refresh_jti:{jti}"
     try:
-        info = redis_client.hgetall(key)
+        info: dict[bytes | str, bytes | str] = redis_client.hgetall(key)
 
         # only revoke if this jti actually belongs to the calling user —
         # stops one user from logging out someone else's session by guessing a jti
@@ -44,21 +46,25 @@ def revoke_single_session(user_id, jti):
         redis_client.hset(key, "revoked", "1")
         redis_client.srem(f"user_sessions:{user_id}", jti)
         return True
-    except redis.exceptions.RedisError as exc:
+    except RedisError as exc:
         logger.error(
             "Redis unavailable while revoking session %s for user %s: %s", jti, user_id, exc
         )
         raise RedisUnavailableError("Could not revoke session: Redis is unavailable") from exc
 
 
-def rotate_refresh_token(user, token_info, old_refresh_token_info):
+def rotate_refresh_token(
+    user: Any,
+    token_info: Mapping[str, Any],
+    old_refresh_token_info: Mapping[str, Any] | None,
+) -> None:
     """
     Store the refresh token information in Redis with an expiration time.
     """
     try:
         if old_refresh_token_info:
             # 1. Atomic check-and-update using Lua
-            old_key = f"refresh_jti:{old_refresh_token_info['jti']}"
+            old_key: str = f"refresh_jti:{old_refresh_token_info['jti']}"
             revoke_script = """
             if redis.call('EXISTS', KEYS[1]) == 1 then
                 local was_revoked = redis.call('HGET', KEYS[1], 'revoked')
@@ -75,7 +81,7 @@ def rotate_refresh_token(user, token_info, old_refresh_token_info):
                 raise TokenReuseDetectedError()
 
         # 2. Store new token information
-        key = f"refresh_jti:{token_info['jti']}"
+        key: str = f"refresh_jti:{token_info['jti']}"
         redis_client.hset(
             key,
             mapping={
@@ -86,9 +92,9 @@ def rotate_refresh_token(user, token_info, old_refresh_token_info):
         )
         redis_client.expireat(key, token_info["exp"])
 
-        user_sessions_key = f"user_sessions:{user.id}"
+        user_sessions_key: str = f"user_sessions:{user.id}"
         redis_client.sadd(user_sessions_key, token_info["jti"])
         redis_client.expireat(user_sessions_key, token_info["exp"])
-    except redis.exceptions.RedisError as exc:
+    except RedisError as exc:
         logger.error("Redis unavailable while rotating refresh token for user %s: %s", user.id, exc)
         raise RedisUnavailableError("Could not issue refresh token: Redis is unavailable") from exc

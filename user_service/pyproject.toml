@@ -29,3 +29,10 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]  # pyflakes, pycodestyle, isort, pyupgrade, bugbear
+
+[tool.pyright]
+include = ["app", "config"]
+exclude = ["**/__pycache__", "**/migrations"]
+pythonVersion = "3.12"
+typeCheckingMode = "basic"
+reportMissingTypeStubs = false

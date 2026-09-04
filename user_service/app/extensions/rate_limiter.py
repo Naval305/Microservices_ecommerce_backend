@@ -5,7 +5,7 @@ from flask_limiter.util import get_remote_address
 from app.extensions.redis_connection import redis_client
 
 
-def init_rate_limiter(app):
+def init_rate_limiter(app) -> None:
     global limiter
     limiter = Limiter(
         key_func=get_remote_address,
@@ -18,7 +18,7 @@ def init_rate_limiter(app):
     limiter.init_app(app)
 
 
-def get_login_email_key():
+def get_login_email_key() -> str:
     try:
         data = request.get_json(silent=True) or {}
         email = data.get("email", "").strip().lower()

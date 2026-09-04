@@ -1,5 +1,8 @@
-from flask import current_app, g
+from typing import Any, Literal
+
+from flask import Response, current_app, g
 from flask.views import MethodView
+from flask_sqlalchemy.pagination import Pagination
 from sqlalchemy import text
 
 from app.blueprints.user_blueprints import blp
@@ -14,7 +17,7 @@ from app.schemas.user_schemas import (
     UserLoginSchema,
 )
 from app.services.session_service import revoke_all_sessions, revoke_single_session
-from app.services.user_service import UserContext
+from app.services.user_service import User, UserContext
 from app.utils.users import (
     attach_refresh_cookie,
     clear_refresh_cookie,
@@ -29,15 +32,15 @@ from app.utils.users import (
 @blp.route("/healthz", methods=["GET"])
 class HealthCheck(MethodView):
     @limiter.exempt
-    def get(self):
+    def get(self) -> tuple[dict[str, str], Literal[200]]:
         return {"status": "ok"}, 200
 
 
 @blp.route("/readyz", methods=["GET"])
 class ReadinessCheck(MethodView):
     @limiter.exempt
-    def get(self):
-        checks = {}
+    def get(self) -> tuple[dict[str, Any], Literal[200]] | tuple[dict[str, Any], Literal[503]]:
+        checks: dict[str, str] = {}
 
         try:
             db.session.execute(text("SELECT 1"))
@@ -66,9 +69,9 @@ class GetUserList(MethodView):
     @login_required(staff_only=True)
     @blp.arguments(PaginationSchema, location="query")
     @blp.response(200, UserListResponseSchema)
-    def get(self, args):
+    def get(self, args: dict[str, int]) -> dict[str, Any]:
         """Get user list"""
-        users = UserContext().get_users(
+        users: Pagination = UserContext().get_users(
             page=args["page"],
             per_page=args["per_page"],
         )
@@ -87,14 +90,12 @@ class GetUserList(MethodView):
 class Registration(MethodView):
     @limiter.limit("10 per minute")
     @blp.arguments(CreateUserSchema)
-    def post(self, data):
+    def post(self, data: dict[str, str]) -> Response:
         """Register a new user"""
 
-        validation_result = validate_user_data(data)
-        if validation_result is not None:
-            return validation_result
+        validate_user_data(data)
 
-        new_user_id = UserContext().create_user(
+        new_user_id: int = UserContext().create_user(
             data["first_name"], data["last_name"], data["email"], data["password"]
         )
         current_app.logger.info("User created")
@@ -107,17 +108,17 @@ class Registration(MethodView):
 
 @blp.route("/login", methods=["POST"])
 class Login(MethodView):
-    def __init__(self, user_service=None) -> None:
+    def __init__(self, user_service: UserContext | None = None) -> None:
         self.user_service = user_service or UserContext()
 
     @limiter.limit("10 per minute")
     @limiter.limit("10 per 15 minutes", key_func=get_login_email_key)
     @blp.arguments(UserLoginSchema)
-    def post(self, auth):
-        email = auth["email"]
-        password = auth["password"]
+    def post(self, auth: dict[str, str]) -> Response:
+        email: str = auth["email"]
+        password: str = auth["password"]
 
-        user = self.user_service.check_user_existance(email=email)
+        user: User | None = self.user_service.check_user_existance(email=email)
 
         if not user or not self.user_service.check_user_password_status(password):
             return CustomResponse.error(
@@ -126,18 +127,18 @@ class Login(MethodView):
                 status_code=401,
             )
 
-        result = generate_tokens(user)
-        resp = CustomResponse.success(data={"access_token": result["access_token"]})
+        result: dict[str, str] = generate_tokens(user)
+        resp: Response = CustomResponse.success(data={"access_token": result["access_token"]})
         return attach_refresh_cookie(resp, result["refresh_token"])
 
 
 @blp.route("/refresh", methods=["POST"])
 class RefreshToken(MethodView):
     @limiter.limit("10 per minute")
-    def post(self):
+    def post(self) -> Response:
         """Refresh access token using refresh token"""
-        result = generate_new_access_token()
-        resp = CustomResponse.success(data={"access_token": result["access_token"]})
+        result: dict[str, str] = generate_new_access_token()
+        resp: Response = CustomResponse.success(data={"access_token": result["access_token"]})
         return attach_refresh_cookie(resp, result["refresh_token"])
 
 
@@ -145,11 +146,11 @@ class RefreshToken(MethodView):
 class Logout(MethodView):
     @limiter.limit("10 per minute")
     @login_required()
-    def post(self):
+    def post(self) -> Response:
         """Logout user by revoking this device's refresh token"""
-        jti = decode_refresh_token_jti()
+        jti: str = decode_refresh_token_jti()
         revoke_single_session(g.user_id, jti)
-        resp = CustomResponse.success(message="Logged out successfully")
+        resp: Response = CustomResponse.success(message="Logged out successfully")
         return clear_refresh_cookie(resp)
 
 
@@ -157,8 +158,8 @@ class Logout(MethodView):
 class LogoutAll(MethodView):
     @limiter.limit("10 per minute")
     @login_required()
-    def post(self):
+    def post(self) -> Response:
         """Logout user from all devices by revoking all refresh tokens"""
         revoke_all_sessions(g.user_id)
-        resp = CustomResponse.success(message="Logged out from all devices successfully")
+        resp: Response = CustomResponse.success(message="Logged out from all devices successfully")
         return clear_refresh_cookie(resp)

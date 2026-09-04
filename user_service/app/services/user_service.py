@@ -1,3 +1,4 @@
+from flask_sqlalchemy.pagination import Pagination
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -6,24 +7,24 @@ from app.main import db
 from app.models.user_model import User
 from app.services.user_status_service import set_user_active_status
 
-DUMMY_PASSWORD_HASH = generate_password_hash("not-a-real-password")
+DUMMY_PASSWORD_HASH: str = generate_password_hash("not-a-real-password")
 
 
 class UserContext:
-    def __init__(self, user_id=None) -> None:
-        self.user_id = user_id
-        self._user = None
+    def __init__(self, user_id: int | None = None) -> None:
+        self.user_id: int | None = user_id
+        self._user: User | None = None
 
     @property
-    def user(self):
+    def user(self) -> User:
         if self._user is None:
-            self._user = db.session.get(User, self.user_id)
+            self._user: User | None = db.session.get(User, self.user_id)
             if self._user is None:
                 raise UserNotFoundError("User not found")
         return self._user
 
     @staticmethod
-    def get_users(page, per_page):
+    def get_users(page: int, per_page: int) -> Pagination:
         return User.query.paginate(
             page=page,
             per_page=per_page,
@@ -31,8 +32,8 @@ class UserContext:
         )
 
     @staticmethod
-    def create_user(first_name, last_name, email, password):
-        new_user = User(
+    def create_user(first_name: str, last_name: str, email: str, password: str) -> int:
+        new_user: User = User(
             first_name=first_name,
             last_name=last_name,
             email=email,
@@ -44,16 +45,16 @@ class UserContext:
             db.session.commit()
         except IntegrityError:
             db.session.rollback()
-            raise EmailAlreadyExistsError()
+            raise EmailAlreadyExistsError() from None
 
         set_user_active_status(new_user.id, new_user.is_active)
         return new_user.id
 
-    def check_user_existance(self, email):
-        self._user = User.query.filter_by(email=email).first()
+    def check_user_existance(self, email: str) -> User | None:
+        self._user: User | None = User.query.filter_by(email=email).first()
         return self._user
 
-    def check_user_password_status(self, password):
-        hash_to_check = self._user.password_hash if self._user else DUMMY_PASSWORD_HASH
-        password_ok = check_password_hash(hash_to_check, password)
+    def check_user_password_status(self, password: str) -> bool:
+        hash_to_check: str = self._user.password_hash if self._user else DUMMY_PASSWORD_HASH
+        password_ok: bool = check_password_hash(hash_to_check, password)
         return bool(self._user) and self._user.is_active and password_ok
