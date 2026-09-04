@@ -27,6 +27,7 @@ from app.utils.users import (
     login_required,
     validate_user_data,
 )
+from app.tasks.email_tasks import send_welcome_email
 
 
 @blp.route("/healthz", methods=["GET"])
@@ -98,6 +99,7 @@ class Registration(MethodView):
         new_user_id: int = UserContext().create_user(
             data["first_name"], data["last_name"], data["email"], data["password"]
         )
+        send_welcome_email.delay(data["email"], data["first_name"])
         current_app.logger.info("User created")
         return CustomResponse.success(
             message="User created successfully",
