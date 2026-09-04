@@ -11,8 +11,8 @@ class Config:
     DEBUG = False
     TESTING = False
 
-    PRIVATE_KEY = (BASE_DIR / "keys" / "private.pem").read_text()
-    PUBLIC_KEY = (BASE_DIR / "keys" / "public.pem").read_text()
+    PRIVATE_KEY_PATH = BASE_DIR / "keys" / "private.pem"
+    PUBLIC_KEY_PATH = BASE_DIR / "keys" / "public.pem"
     REFRESH_SECRET_KEY = os.environ["REFRESH_SECRET_KEY"]
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -49,3 +49,6 @@ app_config = configs.get(
     os.getenv("APP_ENV", "production"),
     ProductionConfig,
 )
+
+if os.getenv("APP_ENV") == "development":
+    os.environ["PYTHONBREAKPOINT"] = "ipdb.set_trace"

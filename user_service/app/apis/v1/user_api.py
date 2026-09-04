@@ -1,4 +1,4 @@
-from flask import current_app
+from flask import current_app, g
 from flask.views import MethodView
 from sqlalchemy import text
 
@@ -6,9 +6,10 @@ from app.main import db
 from app.blueprints.user_blueprints import blp
 from app.interfaces.user_interface import BaseApiView
 from app.schemas.custom_response import CustomResponse
-from app.utils.users import generate_tokens, login_required, generate_new_access_token, validate_user_data
-from app.services.user_service import UserService
+from app.utils.users import attach_refresh_cookie, clear_refresh_cookie, decode_refresh_token_jti, generate_tokens, login_required, generate_new_access_token, validate_user_data
+from app.services.user_service import UserContext
 from app.schemas.user_schemas import CreateUserSchema, PaginationSchema, UserListResponseSchema, UserLoginSchema
+from app.utils.redis_utility import revoke_all_sessions, revoke_single_session, redis_client
 
 
 @blp.route("/healthz", methods=["GET"])
@@ -22,12 +23,28 @@ class HealthCheck(BaseApiView):
 class ReadinessCheck(BaseApiView):
 
     def get(self):
+        checks = {}
+
         try:
             db.session.execute(text("SELECT 1"))
-            return {"status": "ready"}, 200
+            checks["database"] = "ok"
         except Exception:
-            current_app.logger.exception("Readiness check failed")
-            return {"status": "not_ready"}, 503
+            current_app.logger.exception("DB readiness check failed")
+            checks["database"] = "failed"
+
+        try:
+            redis_client.ping()
+            checks["redis"] = "ok"
+        except Exception:
+            current_app.logger.exception("Redis readiness check failed")
+            checks["redis"] = "failed"
+
+        # add more dependencies here the same way
+
+        if all(v == "ok" for v in checks.values()):
+            return {"status": "ready", "checks": checks}, 200
+
+        return {"status": "not_ready", "checks": checks}, 503
 
 
 @blp.route("/list", methods=["GET"])
@@ -38,7 +55,7 @@ class GetUserList(BaseApiView):
     @blp.response(200, UserListResponseSchema)
     def get(self, args):
         """Get user list"""
-        users = UserService().get_users(
+        users = UserContext().get_users(
             page=args["page"],
             per_page=args["per_page"],
         )
@@ -64,7 +81,7 @@ class Registration(BaseApiView):
         if validation_result is not None:
             return validation_result
 
-        new_user_id = UserService().create_user(
+        new_user_id = UserContext().create_user(
             data["first_name"], data["last_name"], data["email"], data["password"]
         )
         current_app.logger.info("User created")
@@ -79,7 +96,7 @@ class Registration(BaseApiView):
 class Login(MethodView):
 
     def __init__(self, user_service=None) -> None:
-        self.user_service = user_service or UserService()
+        self.user_service = user_service or UserContext()
 
     @blp.arguments(UserLoginSchema)
     def post(self, auth):
@@ -88,7 +105,7 @@ class Login(MethodView):
 
         user = self.user_service.check_user_existance(email=email)
 
-        if user is None or not self.user_service.check_user_password(user, password):
+        if not user or not self.user_service.check_user_password_status(user, password):
             return CustomResponse.error(
                 code="invalid_credentials",
                 message="Invalid email or password.",
@@ -96,21 +113,38 @@ class Login(MethodView):
             )
 
         result = generate_tokens(user)
-        return CustomResponse.success(data=result)
+        resp = CustomResponse.success(data={"access_token": result["access_token"]})
+        return attach_refresh_cookie(resp, result["refresh_token"])
+
 
 @blp.route("/refresh", methods=["POST"])
 class RefreshToken(MethodView):
 
     def post(self):
         """Refresh access token using refresh token"""
+        result = generate_new_access_token()
+        resp = CustomResponse.success(data={"access_token": result["access_token"]})
+        return attach_refresh_cookie(resp, result["refresh_token"])
 
-        result, status = generate_new_access_token()
 
-        if status != 200:
-            return CustomResponse.error(
-                code="invalid_refresh_token",
-                message="Invalid or expired refresh token.",
-                status_code=401,
-            )
+@blp.route("/logout", methods=["POST"])
+class Logout(MethodView):
 
-        return CustomResponse.success(data=result)
+    @login_required()
+    def post(self):
+        """Logout user by revoking this device's refresh token"""
+        jti = decode_refresh_token_jti()
+        revoke_single_session(g.user_id, jti)
+        resp = CustomResponse.success(message="Logged out successfully")
+        return clear_refresh_cookie(resp)
+
+
+@blp.route("/logout/all", methods=["POST"])
+class LogoutAll(MethodView):
+
+    @login_required()
+    def post(self):
+        """Logout user from all devices by revoking all refresh tokens"""
+        revoke_all_sessions(g.user_id)
+        resp = CustomResponse.success(message="Logged out from all devices successfully")
+        return clear_refresh_cookie(resp)

@@ -2,19 +2,34 @@ import redis
 
 from app.errors.exceptions import TokenReuseDetectedError
 
-r = redis.Redis(host='127.0.0.1', port=6379, decode_responses=True)
+redis_client = redis.Redis(host='127.0.0.1', port=6379, decode_responses=True)
+USER_ACTIVE_TTL = 60 * 60 * 24  # 24h safety net, not the source of truth
 
 
 def revoke_all_sessions(user_id):
     user_sessions_key = f"user_sessions:{user_id}"
-    jtis = r.smembers(user_sessions_key)  # O(1) lookup, returns only THIS user's jtis
+    jtis = redis_client.smembers(user_sessions_key)  # O(1) lookup, returns only THIS user's jtis
 
     for jti in jtis:
         key = f"refresh_jti:{jti}"
-        if r.exists(key):
-            r.hset(key, "revoked", "1")
+        if redis_client.exists(key):
+            redis_client.hset(key, "revoked", "1")
 
-    r.delete(user_sessions_key)
+    redis_client.delete(user_sessions_key)
+
+
+def revoke_single_session(user_id, jti):
+    key = f"refresh_jti:{jti}"
+    info = redis_client.hgetall(key)
+
+    # only revoke if this jti actually belongs to the calling user —
+    # stops one user from logging out someone else's session by guessing a jti
+    if not info or info.get("user_id") != str(user_id):
+        return False
+
+    redis_client.hset(key, "revoked", "1")
+    redis_client.srem(f"user_sessions:{user_id}", jti)
+    return True
 
 
 def rotate_refresh_token(user, token_info, old_refresh_token_info):
@@ -32,7 +47,7 @@ def rotate_refresh_token(user, token_info, old_refresh_token_info):
         end
         return false
         """
-        result = r.eval(revoke_script, 1, old_key)
+        result = redis_client.eval(revoke_script, 1, old_key)
 
         if result == "1":
             # reuse detected — revoke ALL sessions for this user, force re-login
@@ -41,7 +56,7 @@ def rotate_refresh_token(user, token_info, old_refresh_token_info):
 
     # 2. Store new token information
     key = f"refresh_jti:{token_info['jti']}"
-    r.hset(
+    redis_client.hset(
         key,
         mapping={
             "user_id": str(user.id),
@@ -49,8 +64,16 @@ def rotate_refresh_token(user, token_info, old_refresh_token_info):
             "issued_at": token_info['iat'].isoformat()
         },
     )
-    r.expireat(key, token_info['exp'])
+    redis_client.expireat(key, token_info['exp'])
 
     user_sessions_key = f"user_sessions:{user.id}"
-    r.sadd(user_sessions_key, token_info['jti'])
-    r.expireat(user_sessions_key, token_info['exp'])
+    redis_client.sadd(user_sessions_key, token_info['jti'])
+    redis_client.expireat(user_sessions_key, token_info['exp'])
+
+
+def set_user_active_status(user_id, is_active: bool):
+    redis_client.set(f"user:active:{user_id}", "1" if is_active else "0", ex=USER_ACTIVE_TTL)
+
+def get_cached_user_active_status(user_id):
+    val = redis_client.get(f"user:active:{user_id}")
+    return None if val is None else val == "1"  # None = cache miss

@@ -1,14 +1,26 @@
+from pickle import NONE
+
 from sqlalchemy.exc import IntegrityError
 
 from app.models.user_model import User
 from app.main import db
-from app.errors.exceptions import EmailAlreadyExistsError
+from app.errors.exceptions import EmailAlreadyExistsError, UserNotFoundError
+from app.utils.redis_utility import set_user_active_status
 
 
-class UserService:
+class UserContext:
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, user_id=None) -> None:
+        self.user_id = user_id
+        self._user = None
+
+    @property
+    def user(self):
+        if self._user is None:
+            self._user = db.session.get(User, self.user_id)
+            if self._user is None:
+                raise UserNotFoundError("User not found")
+        return self._user
 
     @staticmethod
     def get_users(page, per_page):
@@ -38,15 +50,8 @@ class UserService:
             db.session.rollback()
             raise EmailAlreadyExistsError()
 
+        set_user_active_status(new_user.id, new_user.is_active)
         return new_user.id
 
-    def check_user_password(self, user, password):
-        return user.check_password(password)
-
-    @staticmethod
-    def is_staff(user_id):
-        user = db.session.get(User, user_id)
-        return user.is_staff if user else False
-
-    def get_user_by_id(self, user_id):
-        return db.session.get(User, user_id)
+    def check_user_password_status(self, user, password):
+        return user.check_password(password) and user.is_active

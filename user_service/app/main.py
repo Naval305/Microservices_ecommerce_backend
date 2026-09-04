@@ -11,12 +11,13 @@ from app.errors.handlers import (
     handle_token_reuse,
     handle_unexpected_error,
     handle_validation_error,
+    handle_invalid_token,
+    handle_unauthorized,
+    handle_user_not_found
 )
 from config.config import app_config
-from app.errors.exceptions import EmailAlreadyExistsError, TokenReuseDetectedError
+from app.errors.exceptions import EmailAlreadyExistsError, TokenReuseDetectedError, InvalidTokenError, UnauthorizedError, UserNotFoundError
 
-import os
-os.environ["PYTHONBREAKPOINT"] = "ipdb.set_trace"
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -25,6 +26,9 @@ migrate = Migrate()
 def create_app(test_config=None):
     app = Flask(__name__)
     app.config.from_object(app_config)
+    app.config["PRIVATE_KEY"] = app.config["PRIVATE_KEY_PATH"].read_text()
+    app.config["PUBLIC_KEY"] = app.config["PUBLIC_KEY_PATH"].read_text()
+
     if test_config:
         app.config.update(test_config)
 
@@ -36,6 +40,9 @@ def create_app(test_config=None):
     app.register_error_handler(ValidationError, handle_validation_error)
     app.register_error_handler(EmailAlreadyExistsError, handle_email_already_exists)
     app.register_error_handler(TokenReuseDetectedError, handle_token_reuse)
+    app.register_error_handler(InvalidTokenError, handle_invalid_token)
+    app.register_error_handler(UnauthorizedError, handle_unauthorized)
+    app.register_error_handler(UserNotFoundError, handle_user_not_found)
     app.register_error_handler(Exception, handle_unexpected_error)
 
     from .blueprints.user_blueprints import register_routes

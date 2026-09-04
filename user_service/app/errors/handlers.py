@@ -57,3 +57,26 @@ def handle_token_reuse(error):
         message="Your session was compromised. Please log in again.",
         status_code=401,
     )
+
+
+def handle_invalid_token(error):
+    return CustomResponse.error(
+        code="invalid_token",
+        message=str(error),
+        status_code=401,
+    )
+
+
+def handle_unauthorized(error):
+    return CustomResponse.error(
+        code="unauthorized",
+        message="You are not authorized to access this resource.",
+        status_code=401,
+    )
+
+def handle_user_not_found(error):
+    return CustomResponse.error(
+        code="user_not_found",
+        message="The requested user was not found.",
+        status_code=401,
+    )
