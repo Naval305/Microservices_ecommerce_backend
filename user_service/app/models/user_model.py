@@ -2,23 +2,39 @@ from datetime import datetime
 
 from sqlalchemy.orm import validates
 from werkzeug.security import generate_password_hash
+from sqlalchemy.orm import Mapped, mapped_column
 
-from ..main import db
+from app.main import db
 
 
 class User(db.Model):
-    id: int = db.Column(db.Integer, primary_key=True)
-    first_name: str = db.Column(db.String(30), nullable=False)
-    last_name: str = db.Column(db.String(50), nullable=False)
-    email: str = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash: str = db.Column(db.String(255), nullable=False)
-    date_joined: datetime = db.Column(
+    id: Mapped[int] = mapped_column(primary_key=True)
+    first_name: Mapped[str] = mapped_column(db.String(30), nullable=False)
+    last_name: Mapped[str] = mapped_column(db.String(50), nullable=False)
+    email: Mapped[str] = mapped_column(
+        db.String(120),
+        unique=True,
+        nullable=False,
+    )
+    password_hash: Mapped[str] = mapped_column(
+        db.String(255),
+        nullable=False,
+    )
+    date_joined: Mapped[datetime] = mapped_column(
         db.DateTime(timezone=True),
         server_default=db.func.now(),
         nullable=False,
     )
-    is_active: bool = db.Column(db.Boolean, nullable=False, default=True)
-    is_staff: bool = db.Column(db.Boolean, nullable=False, default=False)
+    is_active: Mapped[bool] = mapped_column(
+        db.Boolean,
+        nullable=False,
+        default=True,
+    )
+    is_staff: Mapped[bool] = mapped_column(
+        db.Boolean,
+        nullable=False,
+        default=False,
+    )
 
     @validates("email")
     def normalize_email(self, key: str, value: str) -> str:

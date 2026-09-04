@@ -16,7 +16,7 @@ class CustomResponse:
     @staticmethod
     def error(
         message: str = "Error",
-        status_code: int = 400,
+        status_code: int | None = 400,
         code: str = "error",
         errors: Any = None,
     ) -> Response:

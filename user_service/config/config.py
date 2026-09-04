@@ -13,6 +13,8 @@ class Config:
     TESTING = False
 
     MAX_CONTENT_LENGTH = 1 * 1024 * 1024  # 1MB, adjust to taste
+    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
+    LOG_FILE: str | None = f"{BASE_DIR / 'Logs' / (os.getenv('LOG_FILE'))}" if os.getenv("LOG_FILE") else None
 
     PRIVATE_KEY_PATH: Path = BASE_DIR / "keys" / "private.pem"
     PUBLIC_KEY_PATH: Path = BASE_DIR / "keys" / "public.pem"
@@ -37,14 +39,10 @@ class Config:
     _redis_auth: str = f":{REDIS_PASSWORD}@" if REDIS_PASSWORD else ""
     REDIS_URL: str = f"redis://{_redis_auth}{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
 
-    RABBITMQ_HOST: str | None = os.getenv("RABBITMQ_HOST")
-    RABBITMQ_PORT: int = int(os.getenv("RABBITMQ_PORT", "5672"))
-    RABBITMQ_USER: str | None = os.getenv("RABBITMQ_USER")
-    RABBITMQ_PASSWORD: str | None = os.getenv("RABBITMQ_PASSWORD")
-
 
 class DevelopmentConfig(Config):
     DEBUG = True
+    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "DEBUG")
     os.environ["PYTHONBREAKPOINT"] = "ipdb.set_trace"
     SQLALCHEMY_DATABASE_URI: str = (
         f"sqlite:///{BASE_DIR / 'db' / os.getenv('DB_NAME', 'user_service')}.db"

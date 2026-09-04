@@ -13,7 +13,7 @@ def _error_code(error) -> str:
 def handle_http_exception(error: HTTPException) -> Response:
     data: Any | dict[Any, Any] = getattr(error, "data", {}) or {}
     errors: Any | None = data.get("errors") or data.get("messages")
-    message: Any | str | None = data.get("message") or error.description
+    message: str = data.get("message", "") or str(error.description)
     code: str = "validation_error" if errors else _error_code(error)
 
     response: Response = CustomResponse.error(

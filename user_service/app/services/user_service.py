@@ -11,8 +11,8 @@ DUMMY_PASSWORD_HASH: str = generate_password_hash("not-a-real-password")
 
 
 class UserContext:
-    def __init__(self, user_id: int | None = None) -> None:
-        self.user_id: int | None = user_id
+    def __init__(self, user_id: int| str | None = None) -> None:
+        self.user_id: int | str | None = user_id
         self._user: User | None = None
 
     @property

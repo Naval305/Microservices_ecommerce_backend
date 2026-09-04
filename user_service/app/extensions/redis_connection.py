@@ -12,7 +12,7 @@ redis_client: redis.Redis = redis.Redis()
 
 
 def init_redis(app) -> None:
-    """Build the connection pool from Config, the same way RabbitMQ settings are read.
+    """Build the connection pool from Config.
 
     Uses REDIS_HOST/PORT/DB/PASSWORD (via REDIS_URL) plus explicit socket
     timeouts and a bounded pool size, so a hung/unreachable Redis fails fast

@@ -26,6 +26,7 @@ from app.errors.handlers import (
     handle_validation_error,
     ratelimit_handler,
 )
+from app.extensions.logging import configure_logging
 from app.extensions.rate_limiter import init_rate_limiter
 from app.extensions.redis_connection import init_redis
 from config.config import app_config
@@ -37,6 +38,7 @@ migrate = Migrate()
 def create_app(test_config=None) -> Flask:
     app = Flask(__name__)
     app.config.from_object(app_config)
+    configure_logging(app)
     app.config["PRIVATE_KEY"] = app.config["PRIVATE_KEY_PATH"].read_text()
     app.config["PUBLIC_KEY"] = app.config["PUBLIC_KEY_PATH"].read_text()
 
