@@ -4,7 +4,6 @@ from sqlalchemy import text
 
 from app.main import db
 from app.blueprints.user_blueprints import blp
-from app.interfaces.user_interface import BaseApiView
 from app.schemas.custom_response import CustomResponse
 from app.utils.users import attach_refresh_cookie, clear_refresh_cookie, decode_refresh_token_jti, generate_tokens, login_required, generate_new_access_token, validate_user_data
 from app.services.user_service import UserContext
@@ -15,14 +14,14 @@ from app.extensions.rate_limiter import limiter, get_login_email_key
 
 
 @blp.route("/healthz", methods=["GET"])
-class HealthCheck(BaseApiView):
+class HealthCheck(MethodView):
     @limiter.exempt
     def get(self):
         return {"status": "ok"}, 200
 
 
 @blp.route("/readyz", methods=["GET"])
-class ReadinessCheck(BaseApiView):
+class ReadinessCheck(MethodView):
     @limiter.exempt
     def get(self):
         checks = {}
@@ -50,7 +49,7 @@ class ReadinessCheck(BaseApiView):
 
 
 @blp.route("/list", methods=["GET"])
-class GetUserList(BaseApiView):
+class GetUserList(MethodView):
 
     @login_required(staff_only=True)
     @blp.arguments(PaginationSchema, location="query")
@@ -73,7 +72,7 @@ class GetUserList(BaseApiView):
 
 
 @blp.route("/registration", methods=["POST"])
-class Registration(BaseApiView):
+class Registration(MethodView):
 
     @limiter.limit("10 per minute")
     @blp.arguments(CreateUserSchema)
@@ -110,7 +109,7 @@ class Login(MethodView):
 
         user = self.user_service.check_user_existance(email=email)
 
-        if not user or not self.user_service.check_user_password_status(user, password):
+        if not user or not self.user_service.check_user_password_status(password):
             return CustomResponse.error(
                 code="invalid_credentials",
                 message="Invalid email or password.",

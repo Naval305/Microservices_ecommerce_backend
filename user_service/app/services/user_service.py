@@ -6,7 +6,9 @@ from app.models.user_model import User
 from app.main import db
 from app.errors.exceptions import EmailAlreadyExistsError, UserNotFoundError
 from app.services.user_status_service import set_user_active_status
+from werkzeug.security import generate_password_hash, check_password_hash
 
+DUMMY_PASSWORD_HASH = generate_password_hash("not-a-real-password")
 
 class UserContext:
 
@@ -31,10 +33,6 @@ class UserContext:
         )
 
     @staticmethod
-    def check_user_existance(email):
-        return User.query.filter_by(email=email).first()
-
-    @staticmethod
     def create_user(first_name, last_name, email, password):
         new_user = User(
             first_name=first_name,
@@ -53,5 +51,11 @@ class UserContext:
         set_user_active_status(new_user.id, new_user.is_active)
         return new_user.id
 
-    def check_user_password_status(self, user, password):
-        return user.check_password(password) and user.is_active
+    def check_user_existance(self, email):
+        self._user = User.query.filter_by(email=email).first()
+        return self._user
+
+    def check_user_password_status(self, password):
+        hash_to_check = self._user.password_hash if self._user else DUMMY_PASSWORD_HASH
+        password_ok = check_password_hash(hash_to_check, password)
+        return bool(self._user) and self._user.is_active and password_ok

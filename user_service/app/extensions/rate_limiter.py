@@ -13,6 +13,7 @@ def init_rate_limiter(app):
         storage_options={"connection_pool": redis_client.connection_pool},
         strategy="fixed-window",
         default_limits=["200 per minute", "1000 per hour"],
+        swallow_errors=True,
     )
     limiter.init_app(app)
 

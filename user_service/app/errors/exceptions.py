@@ -22,3 +22,8 @@ class UserNotFoundError(Exception):
     """Raised when a user is not found."""
 
     pass
+
+class RedisUnavailableError(Exception):
+    """Raised when Redis is unreachable/times out for an operation that can't safely degrade silently."""
+
+    pass

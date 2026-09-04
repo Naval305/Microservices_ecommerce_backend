@@ -15,11 +15,12 @@ from app.errors.handlers import (
     handle_invalid_token,
     handle_unauthorized,
     handle_user_not_found,
+    handle_redis_unavailable,
     ratelimit_handler,
 )
 from config.config import app_config
 from app.extensions.redis_connection import init_redis
-from app.errors.exceptions import EmailAlreadyExistsError, TokenReuseDetectedError, InvalidTokenError, UnauthorizedError, UserNotFoundError
+from app.errors.exceptions import EmailAlreadyExistsError, TokenReuseDetectedError, InvalidTokenError, UnauthorizedError, UserNotFoundError, RedisUnavailableError
 from app.extensions.rate_limiter import init_rate_limiter
 
 
@@ -49,6 +50,7 @@ def create_app(test_config=None):
     app.register_error_handler(InvalidTokenError, handle_invalid_token)
     app.register_error_handler(UnauthorizedError, handle_unauthorized)
     app.register_error_handler(UserNotFoundError, handle_user_not_found)
+    app.register_error_handler(RedisUnavailableError, handle_redis_unavailable)
     app.register_error_handler(HTTPException, handle_http_exception)
     app.register_error_handler(Exception, handle_unexpected_error)
 

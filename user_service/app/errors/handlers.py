@@ -87,3 +87,11 @@ def ratelimit_handler(e):
         message="Too many requests. Please try again later.",
         status_code=429,
     )
+
+def handle_redis_unavailable(error):
+    current_app.logger.error("Redis unavailable: %s", error)
+    return CustomResponse.error(
+        code="service_unavailable",
+        message="A dependent service is temporarily unavailable. Please try again shortly.",
+        status_code=503,
+    )
