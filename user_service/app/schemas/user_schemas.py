@@ -1,4 +1,4 @@
-from marshmallow import Schema, fields, RAISE, validate
+from marshmallow import RAISE, Schema, fields, validate
 
 
 class CreateUserSchema(Schema):
@@ -24,6 +24,7 @@ class CreateUserSchema(Schema):
 class UserListSchema(Schema):
     class Meta:
         unknown = RAISE
+
     first_name = fields.String()
     last_name = fields.String()
     email = fields.Email()
@@ -32,6 +33,7 @@ class UserListSchema(Schema):
 class UserLoginSchema(Schema):
     class Meta:
         unknown = RAISE
+
     email = fields.Email(required=True)
     password = fields.String(
         required=True,

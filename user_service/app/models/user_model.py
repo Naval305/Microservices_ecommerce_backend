@@ -1,5 +1,5 @@
-from werkzeug.security import generate_password_hash
 from sqlalchemy.orm import validates
+from werkzeug.security import generate_password_hash
 
 from ..main import db
 
@@ -20,7 +20,6 @@ class User(db.Model):
     # fb_token = db.Column(db.String(100), nullable=True)
     # twitter_token = db.Column(db.String(100), nullable=True)
     # google_token = db.Column(db.String(100), nullable=True)
-    
 
     @validates("email")
     def normalize_email(self, key, value):

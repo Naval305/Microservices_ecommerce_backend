@@ -1,17 +1,15 @@
-from pickle import NONE
-
 from sqlalchemy.exc import IntegrityError
+from werkzeug.security import check_password_hash, generate_password_hash
 
-from app.models.user_model import User
-from app.main import db
 from app.errors.exceptions import EmailAlreadyExistsError, UserNotFoundError
+from app.main import db
+from app.models.user_model import User
 from app.services.user_status_service import set_user_active_status
-from werkzeug.security import generate_password_hash, check_password_hash
 
 DUMMY_PASSWORD_HASH = generate_password_hash("not-a-real-password")
 
-class UserContext:
 
+class UserContext:
     def __init__(self, user_id=None) -> None:
         self.user_id = user_id
         self._user = None

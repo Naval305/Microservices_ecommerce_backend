@@ -1,13 +1,18 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from functools import wraps
 from uuid import uuid4
 
 import jwt
 from flask import current_app, g, request
 
-from app.errors.exceptions import EmailAlreadyExistsError, InvalidTokenError, UnauthorizedError, UserNotFoundError
-from app.services.user_service import UserContext
+from app.errors.exceptions import (
+    EmailAlreadyExistsError,
+    InvalidTokenError,
+    UnauthorizedError,
+    UserNotFoundError,
+)
 from app.services.session_service import rotate_refresh_token
+from app.services.user_service import UserContext
 from app.services.user_status_service import get_cached_user_active_status, set_user_active_status
 
 
@@ -26,7 +31,7 @@ def get_auth_header():
 
 
 def generate_access_token(user):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {
         "sub": str(user.id),
         "email": user.email,
@@ -41,11 +46,11 @@ def generate_access_token(user):
 
 
 def generate_refresh_token(user, old_refresh_token_info=None):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {
         "sub": str(user.id),
         "type": "refresh",
-        "jti": str(uuid4()),   # unique id — lets you revoke this one token later
+        "jti": str(uuid4()),  # unique id — lets you revoke this one token later
         "iss": "user-service",
         "aud": "ecommerce-services",
         "iat": now,
@@ -84,8 +89,11 @@ def authenticate(refresh_token=False):
 
     try:
         payload = jwt.decode(
-            token, key, algorithms=algo,
-            issuer="user-service", audience="ecommerce-services",
+            token,
+            key,
+            algorithms=algo,
+            issuer="user-service",
+            audience="ecommerce-services",
         )
     except jwt.ExpiredSignatureError:
         raise InvalidTokenError("Token has expired")
@@ -127,12 +135,14 @@ def login_required(staff_only=False):
                     raise UnauthorizedError("Unauthorized: Staff access required")
 
             return f(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
 def generate_new_access_token():
-    payload = authenticate(refresh_token=True)   # raises on failure
+    payload = authenticate(refresh_token=True)  # raises on failure
 
     user = UserContext(payload["sub"]).user
     if not user:
@@ -150,8 +160,11 @@ def decode_refresh_token_jti():
         if not token:
             raise InvalidTokenError("Missing refresh token")
         payload = jwt.decode(
-            token, current_app.config["REFRESH_SECRET_KEY"], algorithms=["HS256"],
-            issuer="user-service", audience="ecommerce-services",
+            token,
+            current_app.config["REFRESH_SECRET_KEY"],
+            algorithms=["HS256"],
+            issuer="user-service",
+            audience="ecommerce-services",
             options={"verify_exp": False},  # logout should work even if it just expired
         )
     except jwt.InvalidTokenError:

@@ -1,5 +1,6 @@
 import os
 import sys
+
 import pytest
 
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
@@ -35,13 +36,14 @@ def app():
 def client(app):
     return app.test_client()
 
+
 @pytest.fixture()
 def test_user(client):
     user = {
         "first_name": "Test",
         "last_name": "User",
         "email": "test@example.com",
-        "password": "testpassword123"
+        "password": "testpassword123",
     }
 
     response = client.post(
@@ -54,6 +56,7 @@ def test_user(client):
     # user_id = response.get_json()["data"]["user_id"]
 
     return user
+
 
 @pytest.fixture()
 def auth_tokens(client, test_user):

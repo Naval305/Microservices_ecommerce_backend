@@ -74,6 +74,7 @@ def handle_unauthorized(error):
         status_code=401,
     )
 
+
 def handle_user_not_found(error):
     return CustomResponse.error(
         code="user_not_found",
@@ -81,12 +82,14 @@ def handle_user_not_found(error):
         status_code=401,
     )
 
+
 def ratelimit_handler(e):
     return CustomResponse.error(
         code="rate_limit_exceeded",
         message="Too many requests. Please try again later.",
         status_code=429,
     )
+
 
 def handle_redis_unavailable(error):
     current_app.logger.error("Redis unavailable: %s", error)

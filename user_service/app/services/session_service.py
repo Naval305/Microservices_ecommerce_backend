@@ -16,7 +16,9 @@ logger = logging.getLogger(__name__)
 def revoke_all_sessions(user_id):
     user_sessions_key = f"user_sessions:{user_id}"
     try:
-        jtis = redis_client.smembers(user_sessions_key)  # O(1) lookup, returns only THIS user's jtis
+        jtis = redis_client.smembers(
+            user_sessions_key
+        )  # O(1) lookup, returns only THIS user's jtis
 
         for jti in jtis:
             key = f"refresh_jti:{jti}"
@@ -43,7 +45,9 @@ def revoke_single_session(user_id, jti):
         redis_client.srem(f"user_sessions:{user_id}", jti)
         return True
     except redis.exceptions.RedisError as exc:
-        logger.error("Redis unavailable while revoking session %s for user %s: %s", jti, user_id, exc)
+        logger.error(
+            "Redis unavailable while revoking session %s for user %s: %s", jti, user_id, exc
+        )
         raise RedisUnavailableError("Could not revoke session: Redis is unavailable") from exc
 
 
@@ -77,14 +81,14 @@ def rotate_refresh_token(user, token_info, old_refresh_token_info):
             mapping={
                 "user_id": str(user.id),
                 "revoked": "0",
-                "issued_at": token_info['iat'].isoformat()
+                "issued_at": token_info["iat"].isoformat(),
             },
         )
-        redis_client.expireat(key, token_info['exp'])
+        redis_client.expireat(key, token_info["exp"])
 
         user_sessions_key = f"user_sessions:{user.id}"
-        redis_client.sadd(user_sessions_key, token_info['jti'])
-        redis_client.expireat(user_sessions_key, token_info['exp'])
+        redis_client.sadd(user_sessions_key, token_info["jti"])
+        redis_client.expireat(user_sessions_key, token_info["exp"])
     except redis.exceptions.RedisError as exc:
         logger.error("Redis unavailable while rotating refresh token for user %s: %s", user.id, exc)
         raise RedisUnavailableError("Could not issue refresh token: Redis is unavailable") from exc

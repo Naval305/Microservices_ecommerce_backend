@@ -1,28 +1,34 @@
 from flask import Flask
 from flask_limiter import RateLimitExceeded
-from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_smorest import Api
+from flask_sqlalchemy import SQLAlchemy
 from marshmallow import ValidationError
 from werkzeug.exceptions import HTTPException
 
+from app.errors.exceptions import (
+    EmailAlreadyExistsError,
+    InvalidTokenError,
+    RedisUnavailableError,
+    TokenReuseDetectedError,
+    UnauthorizedError,
+    UserNotFoundError,
+)
 from app.errors.handlers import (
     handle_email_already_exists,
     handle_http_exception,
-    handle_token_reuse,
-    handle_unexpected_error,
-    handle_validation_error,
     handle_invalid_token,
-    handle_unauthorized,
-    handle_user_not_found,
     handle_redis_unavailable,
+    handle_token_reuse,
+    handle_unauthorized,
+    handle_unexpected_error,
+    handle_user_not_found,
+    handle_validation_error,
     ratelimit_handler,
 )
-from config.config import app_config
-from app.extensions.redis_connection import init_redis
-from app.errors.exceptions import EmailAlreadyExistsError, TokenReuseDetectedError, InvalidTokenError, UnauthorizedError, UserNotFoundError, RedisUnavailableError
 from app.extensions.rate_limiter import init_rate_limiter
-
+from app.extensions.redis_connection import init_redis
+from config.config import app_config
 
 db = SQLAlchemy()
 migrate = Migrate()

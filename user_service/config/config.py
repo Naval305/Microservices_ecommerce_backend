@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -41,13 +42,19 @@ class Config:
     RABBITMQ_USER = os.getenv("RABBITMQ_USER")
     RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
 
+
 class DevelopmentConfig(Config):
     DEBUG = True
     os.environ["PYTHONBREAKPOINT"] = "ipdb.set_trace"
-    SQLALCHEMY_DATABASE_URI = f"sqlite:///{BASE_DIR / 'db' / os.getenv('DB_NAME', 'user_service')}.db"
+    SQLALCHEMY_DATABASE_URI = (
+        f"sqlite:///{BASE_DIR / 'db' / os.getenv('DB_NAME', 'user_service')}.db"
+    )
+
 
 class ProductionConfig(Config):
-    SQLALCHEMY_DATABASE_URI = f"sqlite:///{BASE_DIR / 'db' / os.getenv('DB_NAME', 'user_service')}.db"
+    SQLALCHEMY_DATABASE_URI = (
+        f"sqlite:///{BASE_DIR / 'db' / os.getenv('DB_NAME', 'user_service')}.db"
+    )
 
 
 class TestingConfig(Config):

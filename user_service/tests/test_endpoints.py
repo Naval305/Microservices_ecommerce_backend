@@ -66,9 +66,7 @@ def test_unexpected_error_returns_500_without_internal_detail(client):
 def test_refresh_token_200(client, auth_tokens):
     response = client.post(
         "/api/users/refresh",
-        headers={
-            "Authorization": f"Bearer {auth_tokens['refresh_token']}"
-        },
+        headers={"Authorization": f"Bearer {auth_tokens['refresh_token']}"},
     )
     print(response.get_json())
     assert response.status_code == 200
@@ -76,9 +74,7 @@ def test_refresh_token_200(client, auth_tokens):
 
 
 def test_refresh_token_with_invalid_token_returns_401(client):
-    response = client.post(
-        "/api/users/refresh", headers={"Authorization": "Bearer invalidtoken"}
-    )
+    response = client.post("/api/users/refresh", headers={"Authorization": "Bearer invalidtoken"})
     body = response.get_json()
     assert response.status_code == 401
     assert body["code"] == "invalid_refresh_token"

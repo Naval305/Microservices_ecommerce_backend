@@ -2,15 +2,28 @@ from flask import current_app, g
 from flask.views import MethodView
 from sqlalchemy import text
 
-from app.main import db
 from app.blueprints.user_blueprints import blp
-from app.schemas.custom_response import CustomResponse
-from app.utils.users import attach_refresh_cookie, clear_refresh_cookie, decode_refresh_token_jti, generate_tokens, login_required, generate_new_access_token, validate_user_data
-from app.services.user_service import UserContext
-from app.schemas.user_schemas import CreateUserSchema, PaginationSchema, UserListResponseSchema, UserLoginSchema
-from app.services.session_service import revoke_all_sessions, revoke_single_session
+from app.extensions.rate_limiter import get_login_email_key, limiter
 from app.extensions.redis_connection import redis_client
-from app.extensions.rate_limiter import limiter, get_login_email_key
+from app.main import db
+from app.schemas.custom_response import CustomResponse
+from app.schemas.user_schemas import (
+    CreateUserSchema,
+    PaginationSchema,
+    UserListResponseSchema,
+    UserLoginSchema,
+)
+from app.services.session_service import revoke_all_sessions, revoke_single_session
+from app.services.user_service import UserContext
+from app.utils.users import (
+    attach_refresh_cookie,
+    clear_refresh_cookie,
+    decode_refresh_token_jti,
+    generate_new_access_token,
+    generate_tokens,
+    login_required,
+    validate_user_data,
+)
 
 
 @blp.route("/healthz", methods=["GET"])
@@ -50,7 +63,6 @@ class ReadinessCheck(MethodView):
 
 @blp.route("/list", methods=["GET"])
 class GetUserList(MethodView):
-
     @login_required(staff_only=True)
     @blp.arguments(PaginationSchema, location="query")
     @blp.response(200, UserListResponseSchema)
@@ -73,7 +85,6 @@ class GetUserList(MethodView):
 
 @blp.route("/registration", methods=["POST"])
 class Registration(MethodView):
-
     @limiter.limit("10 per minute")
     @blp.arguments(CreateUserSchema)
     def post(self, data):
@@ -96,7 +107,6 @@ class Registration(MethodView):
 
 @blp.route("/login", methods=["POST"])
 class Login(MethodView):
-
     def __init__(self, user_service=None) -> None:
         self.user_service = user_service or UserContext()
 
