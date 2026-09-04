@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_limiter import RateLimitExceeded
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_smorest import Api
@@ -13,10 +14,13 @@ from app.errors.handlers import (
     handle_validation_error,
     handle_invalid_token,
     handle_unauthorized,
-    handle_user_not_found
+    handle_user_not_found,
+    ratelimit_handler,
 )
 from config.config import app_config
+from app.extensions.redis_connection import init_redis
 from app.errors.exceptions import EmailAlreadyExistsError, TokenReuseDetectedError, InvalidTokenError, UnauthorizedError, UserNotFoundError
+from app.extensions.rate_limiter import init_rate_limiter
 
 
 db = SQLAlchemy()
@@ -34,15 +38,18 @@ def create_app(test_config=None):
 
     db.init_app(app)
     migrate.init_app(app, db)
+    init_redis(app)
+    init_rate_limiter(app)
 
     api = Api(app)
-    app.register_error_handler(HTTPException, handle_http_exception)
+    app.register_error_handler(RateLimitExceeded, ratelimit_handler)
     app.register_error_handler(ValidationError, handle_validation_error)
     app.register_error_handler(EmailAlreadyExistsError, handle_email_already_exists)
     app.register_error_handler(TokenReuseDetectedError, handle_token_reuse)
     app.register_error_handler(InvalidTokenError, handle_invalid_token)
     app.register_error_handler(UnauthorizedError, handle_unauthorized)
     app.register_error_handler(UserNotFoundError, handle_user_not_found)
+    app.register_error_handler(HTTPException, handle_http_exception)
     app.register_error_handler(Exception, handle_unexpected_error)
 
     from .blueprints.user_blueprints import register_routes

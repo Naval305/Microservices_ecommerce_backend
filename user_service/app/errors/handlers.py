@@ -80,3 +80,10 @@ def handle_user_not_found(error):
         message="The requested user was not found.",
         status_code=401,
     )
+
+def ratelimit_handler(e):
+    return CustomResponse.error(
+        code="rate_limit_exceeded",
+        message="Too many requests. Please try again later.",
+        status_code=429,
+    )

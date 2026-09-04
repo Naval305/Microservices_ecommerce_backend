@@ -9,19 +9,21 @@ from app.schemas.custom_response import CustomResponse
 from app.utils.users import attach_refresh_cookie, clear_refresh_cookie, decode_refresh_token_jti, generate_tokens, login_required, generate_new_access_token, validate_user_data
 from app.services.user_service import UserContext
 from app.schemas.user_schemas import CreateUserSchema, PaginationSchema, UserListResponseSchema, UserLoginSchema
-from app.utils.redis_utility import revoke_all_sessions, revoke_single_session, redis_client
+from app.services.session_service import revoke_all_sessions, revoke_single_session
+from app.extensions.redis_connection import redis_client
+from app.extensions.rate_limiter import limiter, get_login_email_key
 
 
 @blp.route("/healthz", methods=["GET"])
 class HealthCheck(BaseApiView):
-
+    @limiter.exempt
     def get(self):
         return {"status": "ok"}, 200
 
 
 @blp.route("/readyz", methods=["GET"])
 class ReadinessCheck(BaseApiView):
-
+    @limiter.exempt
     def get(self):
         checks = {}
 
@@ -73,6 +75,7 @@ class GetUserList(BaseApiView):
 @blp.route("/registration", methods=["POST"])
 class Registration(BaseApiView):
 
+    @limiter.limit("10 per minute")
     @blp.arguments(CreateUserSchema)
     def post(self, data):
         """Register a new user"""
@@ -98,6 +101,8 @@ class Login(MethodView):
     def __init__(self, user_service=None) -> None:
         self.user_service = user_service or UserContext()
 
+    @limiter.limit("10 per minute")
+    @limiter.limit("10 per 15 minutes", key_func=get_login_email_key)
     @blp.arguments(UserLoginSchema)
     def post(self, auth):
         email = auth["email"]
@@ -119,7 +124,7 @@ class Login(MethodView):
 
 @blp.route("/refresh", methods=["POST"])
 class RefreshToken(MethodView):
-
+    @limiter.limit("10 per minute")
     def post(self):
         """Refresh access token using refresh token"""
         result = generate_new_access_token()
@@ -129,7 +134,7 @@ class RefreshToken(MethodView):
 
 @blp.route("/logout", methods=["POST"])
 class Logout(MethodView):
-
+    @limiter.limit("10 per minute")
     @login_required()
     def post(self):
         """Logout user by revoking this device's refresh token"""
@@ -141,7 +146,7 @@ class Logout(MethodView):
 
 @blp.route("/logout/all", methods=["POST"])
 class LogoutAll(MethodView):
-
+    @limiter.limit("10 per minute")
     @login_required()
     def post(self):
         """Logout user from all devices by revoking all refresh tokens"""

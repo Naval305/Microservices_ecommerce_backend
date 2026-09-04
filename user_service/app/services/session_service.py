@@ -1,9 +1,7 @@
 import redis
 
 from app.errors.exceptions import TokenReuseDetectedError
-
-redis_client = redis.Redis(host='127.0.0.1', port=6379, decode_responses=True)
-USER_ACTIVE_TTL = 60 * 60 * 24  # 24h safety net, not the source of truth
+from app.extensions.redis_connection import redis_client
 
 
 def revoke_all_sessions(user_id):
@@ -69,11 +67,3 @@ def rotate_refresh_token(user, token_info, old_refresh_token_info):
     user_sessions_key = f"user_sessions:{user.id}"
     redis_client.sadd(user_sessions_key, token_info['jti'])
     redis_client.expireat(user_sessions_key, token_info['exp'])
-
-
-def set_user_active_status(user_id, is_active: bool):
-    redis_client.set(f"user:active:{user_id}", "1" if is_active else "0", ex=USER_ACTIVE_TTL)
-
-def get_cached_user_active_status(user_id):
-    val = redis_client.get(f"user:active:{user_id}")
-    return None if val is None else val == "1"  # None = cache miss

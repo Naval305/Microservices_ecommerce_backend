@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from app.models.user_model import User
 from app.main import db
 from app.errors.exceptions import EmailAlreadyExistsError, UserNotFoundError
-from app.utils.redis_utility import set_user_active_status
+from app.services.user_status_service import set_user_active_status
 
 
 class UserContext:

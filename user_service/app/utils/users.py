@@ -7,8 +7,8 @@ from flask import current_app, g, request
 
 from app.errors.exceptions import EmailAlreadyExistsError, InvalidTokenError, UnauthorizedError, UserNotFoundError
 from app.services.user_service import UserContext
-from app.utils.redis_utility import rotate_refresh_token
-from app.utils.redis_utility import get_cached_user_active_status, set_user_active_status
+from app.services.session_service import rotate_refresh_token
+from app.services.user_status_service import get_cached_user_active_status, set_user_active_status
 
 
 def validate_user_data(data):
