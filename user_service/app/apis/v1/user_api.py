@@ -18,6 +18,7 @@ from app.schemas.user_schemas import (
 )
 from app.services.session_service import revoke_all_sessions, revoke_single_session
 from app.services.user_service import User, UserContext
+from app.tasks.email_tasks import send_welcome_email
 from app.utils.users import (
     attach_refresh_cookie,
     clear_refresh_cookie,
@@ -27,7 +28,6 @@ from app.utils.users import (
     login_required,
     validate_user_data,
 )
-from app.tasks.email_tasks import send_welcome_email
 
 
 @blp.route("/healthz", methods=["GET"])

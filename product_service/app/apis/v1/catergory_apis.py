@@ -1,14 +1,11 @@
-from typing import Annotated, List
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Request
+from fastapi import APIRouter, Depends
 from pymongo.errors import PyMongoError
 
-from app.db.database import db
-from app.schemas.custom_response import CustomResponse
 from app.schemas.category_schemas import CategoryCreateSchema, CategoryModel
-from app.utils.auth_producer import ConnectUserService
+from app.schemas.custom_response import CustomResponse
 from app.services.category_service import category_create, get_category_list
-
+from app.utils.auth_producer import ConnectUserService
 
 router = APIRouter()
 connect_user_service = ConnectUserService()
@@ -65,7 +62,7 @@ async def create_category(
         )
 
 
-@router.get("/list", response_model=List[CategoryModel])
+@router.get("/list", response_model=list[CategoryModel])
 async def category_list(
     authenticated=Depends(connect_user_service.publish_token_to_queue),
 ):

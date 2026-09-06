@@ -3,7 +3,6 @@ from flask_limiter import RateLimitExceeded
 from flask_migrate import Migrate
 from flask_smorest import Api
 from flask_sqlalchemy import SQLAlchemy
-from app.extensions.extensions import mail
 from marshmallow import ValidationError
 from werkzeug.exceptions import HTTPException
 
@@ -27,10 +26,11 @@ from app.errors.handlers import (
     handle_validation_error,
     ratelimit_handler,
 )
+from app.extensions.celery_connection import init_celery
+from app.extensions.extensions import mail
 from app.extensions.logging import configure_logging
 from app.extensions.rate_limiter import init_rate_limiter
 from app.extensions.redis_connection import init_redis
-from app.extensions.celery_connection import init_celery
 from config.config import app_config
 
 db = SQLAlchemy()

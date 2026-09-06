@@ -14,7 +14,9 @@ class Config:
 
     MAX_CONTENT_LENGTH = 1 * 1024 * 1024  # 1MB, adjust to taste
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
-    LOG_FILE: str | None = f"{BASE_DIR / 'Logs' / (os.getenv('LOG_FILE'))}" if os.getenv("LOG_FILE") else None
+    LOG_FILE: str | None = (
+        f"{BASE_DIR / 'Logs' / (os.getenv('LOG_FILE'))}" if os.getenv("LOG_FILE") else None
+    )
 
     PRIVATE_KEY_PATH: Path = BASE_DIR / "keys" / "private.pem"
     PUBLIC_KEY_PATH: Path = BASE_DIR / "keys" / "public.pem"
@@ -46,7 +48,7 @@ class Config:
     CELERY = {
         "broker_url": REDIS_BROKER_URL,
         "result_backend": REDIS_BACKEND_URL,
-        "task_ignore_result": True,   # set False only for tasks you'll poll results on
+        "task_ignore_result": True,  # set False only for tasks you'll poll results on
         "task_track_started": True,
         "task_serializer": "json",
         "result_serializer": "json",
@@ -62,6 +64,7 @@ class Config:
     MAIL_USERNAME: str | None = os.getenv("MAIL_USERNAME")
     MAIL_PASSWORD: str | None = os.getenv("MAIL_PASSWORD")
     MAIL_DEFAULT_SENDER: str = os.getenv("MAIL_DEFAULT_SENDER", "no-reply@yourapp.local")
+
 
 class DevelopmentConfig(Config):
     DEBUG = True

@@ -1,22 +1,19 @@
-import json
 import os
 import sys
-from typing import List
 
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 sys.path.append(f"{os.getcwd()}/fastapi_env/lib/python3.10/site-packages")
 
-from fastapi import APIRouter, BackgroundTasks, Request, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from pymongo.errors import PyMongoError
 
 from app.db.database import db
 from app.schemas.custom_response import CustomResponse
 from app.schemas.product_schemas import ProductCreateSchema, ProductModel
+from app.services.product_services import product_item, product_list
 from app.utils.auth_producer import ConnectUserService
 from app.utils.utils import cache
-from app.services.product_services import product_list, product_item
-
 
 router = APIRouter()
 connect_user_service = ConnectUserService()
@@ -92,7 +89,7 @@ async def create_product(
         )
 
 
-@router.get("/list", response_model=List[ProductModel])
+@router.get("/list", response_model=list[ProductModel])
 @cache(timeout=300)
 async def get_product_list(
     request: Request,

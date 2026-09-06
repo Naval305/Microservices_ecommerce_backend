@@ -1,13 +1,12 @@
 import uvicorn
-from fastapi import FastAPI
-
-from app.routers.product_routers import product_router
 from app.routers.catergory_routers import catergory_router
+from app.routers.product_routers import product_router
+from fastapi import FastAPI
 
 app = FastAPI(docs_url="/swagger-ui", redoc_url="/redoc")
 
 try:
-    import pymongo
+    pass
 except Exception:
     import os
     import sys

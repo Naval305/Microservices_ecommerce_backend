@@ -1,19 +1,19 @@
 import os
-import pika
 import sys
 
+import pika
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 
 from app.config.config import (
+    rabbitmq_feedback_exchange,
+    rabbitmq_feedback_queue,
+    rabbitmq_feedback_routing_key,
     rabbitmq_host,
     rabbitmq_password,
     rabbitmq_port,
     rabbitmq_user,
-    rabbitmq_feedback_exchange,
-    rabbitmq_feedback_queue,
-    rabbitmq_feedback_routing_key,
 )
 
 

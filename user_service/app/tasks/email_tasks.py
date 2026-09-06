@@ -1,9 +1,8 @@
-from flask_mail import Message
-from app.extensions.extensions import mail
-from flask import render_template
 from flask import current_app
+from flask_mail import Message
 
 from app.extensions.celery_connection import celery_app
+from app.extensions.extensions import mail
 
 
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=30)

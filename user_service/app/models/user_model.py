@@ -1,8 +1,7 @@
 from datetime import datetime
 
-from sqlalchemy.orm import validates
+from sqlalchemy.orm import Mapped, mapped_column, validates
 from werkzeug.security import generate_password_hash
-from sqlalchemy.orm import Mapped, mapped_column
 
 from app.main import db
 

@@ -25,4 +25,3 @@ def init_celery(app: Flask) -> Celery:
     celery_app.Task = FlaskContextTask
     app.extensions["celery"] = celery_app
     return celery_app
-

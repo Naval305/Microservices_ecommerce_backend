@@ -1,17 +1,15 @@
 import json
-import time
 
-from fastapi import Request
 import pika
 
 from app.config.config import (
     rabbitmq_host,
     rabbitmq_password,
     rabbitmq_port,
-    rabbitmq_user,
     rabbitmq_token_exchange,
     rabbitmq_token_queue,
     rabbitmq_token_routing_key,
+    rabbitmq_user,
 )
 from app.utils.utils import get_authentication
 

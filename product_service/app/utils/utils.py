@@ -2,11 +2,8 @@ import json
 import time
 from functools import wraps
 
-from fastapi import HTTPException, Request
-
-from app.utils.redis_config import RedisService, init_sync_redis
 from app.schemas.custom_response import CustomResponse
-
+from app.utils.redis_config import RedisService, init_sync_redis
 
 redis_ins = RedisService()
 
