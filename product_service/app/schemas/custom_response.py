@@ -1,18 +1,11 @@
-from fastapi.responses import JSONResponse
+from typing import Generic, TypeVar
+
+from pydantic import BaseModel
+
+T = TypeVar("T")
 
 
-class CustomResponse(JSONResponse):
-    def __init__(
-        self,
-        status_code=200,
-        message="Success",
-        data=None,
-        exception=None,
-    ):
-        content = {
-            "status": status_code,
-            "message": message,
-            "data": data,
-            "exception": str(exception),
-        }
-        super().__init__(content=content, status_code=status_code)
+class APIResponse(BaseModel, Generic[T]):
+    success: bool = True
+    message: str = "OK"
+    data: T | None = None

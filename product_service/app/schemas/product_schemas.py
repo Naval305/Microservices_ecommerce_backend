@@ -1,25 +1,25 @@
 from decimal import Decimal
 
+from bson import ObjectId
 from pydantic import BaseModel, Field
 
 
-class ProductCreateSchema(BaseModel):
-    name: str = Field(max_length=100)
-    sku: str = Field(max_length=45)
-    description: str | None = None
-    price: Decimal = Field(ge=0.01, decimal_places=2)
-    quantity: int = 1
-    status: bool = True
+class ProductCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    sku: str = Field(min_length=1, max_length=45, pattern=r"^[A-Za-z0-9\-_]+$")
+    description: str | None = Field(default=None, max_length=2000)
+    price: Decimal = Field(ge=0.01, max_digits=10, decimal_places=2)
+    quantity: int = Field(default=1, ge=0)
+    is_active: bool = True
     is_featured: bool = False
-    category: str = None
+    category: str | None = None
 
 
-class ProductModel(BaseModel):
+class ProductOut(BaseModel):
     name: str
-    sku: str
-    description: str
+    sku: str = Field(alias="sku")
     price: float
-    quantity: int
-    status: bool
-    is_featured: bool
-    category: dict
+
+    class Config:
+        populate_by_name = True
+        json_encoders = {ObjectId: str}

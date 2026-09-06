@@ -1,8 +1,11 @@
-from app.db.database import db
+from typing import Any
+
+from app.repositories.category_repository import CategoryRepository
 
 
-async def category_create(data):
-    return await db["category"].insert_one(data)
+class CategoryService:
+    def __init__(self, repository: CategoryRepository) -> None:
+        self.repository: CategoryRepository = repository
 
-async def get_category_list():
-    return await db["category"].find().to_list(length=None)
+    async def get_category(self) -> list[Any]:
+        return await self.repository.get_all()
