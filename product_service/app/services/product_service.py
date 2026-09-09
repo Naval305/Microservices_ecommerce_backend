@@ -8,7 +8,7 @@ from app.core.exceptions import (
 from app.repositories.product_repository import ProductRepository
 from app.schemas.product_schemas import ProductCreate, ProductUpdate
 from app.services.category_service import CategoryService
-from app.utils.helpers import PyObjectId, generate_sku
+from app.utils.helpers import PyObjectId, generate_sku, normalize_name
 
 
 class ProductService:
@@ -18,17 +18,18 @@ class ProductService:
     async def get_all_products(self) -> list[Any]:
         return await self.repository.get_many({})
 
-    async def get_product_by_sku(self, sku) -> dict | None:
-        return await self.repository.get_by_sku(sku)
+    async def get_product_by_sku(self, sku: str) -> dict | None:
+        return await self.repository.get_by_sku(sku.upper())
 
     async def create_product(
         self, data: ProductCreate, cat_service: CategoryService
     ) -> dict:
         category_id: PyObjectId = data.category_id
         data.sku = await generate_sku(category_id)
+        data.normalized_name = await normalize_name(data.name)
 
         product_with_category = await self.repository.get_many(
-            {"name": data.name, "category_id": category_id}
+            {"normalized_name": data.normalized_name, "category_id": category_id}
         )
         if product_with_category:
             raise ProductExistsError
@@ -61,6 +62,9 @@ class ProductService:
             ) = await cat_service.get_category_by_id(category_id)
             if not category_exists:
                 raise CategoryNotExistsError
+
+        if data.name:
+            data.normalized_name = await normalize_name(data.name)
 
         return await self.repository.update_by_sku(
             sku, data.model_dump(exclude_unset=True)

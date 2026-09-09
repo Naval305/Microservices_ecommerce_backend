@@ -13,7 +13,7 @@ router = APIRouter(prefix="/products", tags=["products"])
 @router.get("/list", response_model=APIResponse[list[ProductOut]])
 async def get_products(
     service: ProductService = Depends(get_product_service),
-) -> APIResponse[Any]:
+) -> APIResponse[list[ProductOut]]:
     return APIResponse(data=await service.get_all_products())
 
 
@@ -22,7 +22,7 @@ async def create_product(
     data: ProductCreate,
     service: ProductService = Depends(get_product_service),
     cat_service: CategoryService = Depends(get_category_service),
-) -> APIResponse[Any]:
+) -> APIResponse[dict]:
     return APIResponse(data=await service.create_product(data, cat_service))
 
 
@@ -32,14 +32,14 @@ async def update_product(
     data: ProductUpdate,
     service: ProductService = Depends(get_product_service),
     cat_service: CategoryService = Depends(get_category_service),
-) -> APIResponse[dict[Any, Any]]:
+) -> APIResponse[dict]:
     return APIResponse(data=await service.update_product(sku, data, cat_service))
 
 
 @router.delete("/delete/{sku}")
 async def delete_product(
     sku: str, service: ProductService = Depends(get_product_service)
-) -> APIResponse:
+) -> APIResponse[dict]:
     deleted_count: int = await service.delete_product(sku)
     return APIResponse(
         message="Product deleted successfully",

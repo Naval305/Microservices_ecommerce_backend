@@ -29,10 +29,13 @@ class ProductUpdate(BaseModel):
     is_active: bool | None = None
     is_featured: bool | None = None
 
+    model_config = ConfigDict(extra="allow")
+
 
 class ProductOut(BaseModel):
     id: PyObjectId = Field(alias="_id")
     name: str
+    normalized_name: str
     category_id: str
     description: str
     sku: str = Field(alias="sku")

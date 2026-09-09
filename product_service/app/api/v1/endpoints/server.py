@@ -10,12 +10,12 @@ router = APIRouter(prefix="/server", tags=["server"])
 
 
 @router.get("/healthz")
-async def health_check() -> APIResponse[Any]:
+async def health_check() -> APIResponse[dict]:
     return APIResponse()
 
 
 @router.get("/readyz")
-async def ready_check(client=Depends(get_client)) -> APIResponse[Any]:
+async def ready_check(client=Depends(get_client)) -> APIResponse[dict]:
     try:
         await client.admin.command("ping")
         return APIResponse()
