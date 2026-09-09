@@ -5,11 +5,13 @@ from pydantic_core import core_schema
 
 class PyObjectId(str):
     @classmethod
-    def __get_pydantic_core_schema__(cls, source_type, handler: GetCoreSchemaHandler):
+    def __get_pydantic_core_schema__(
+        cls, source_type, handler: GetCoreSchemaHandler
+    ) -> core_schema.PlainValidatorFunctionSchema:
         return core_schema.no_info_plain_validator_function(cls.validate)
 
     @classmethod
-    def validate(cls, v):
+    def validate(cls, v) -> str:
         if not ObjectId.is_valid(v):
             raise ValueError("Invalid ObjectId")
         return str(v)
@@ -30,10 +32,10 @@ class CategoryUpdateSchema(BaseModel):
 
 # ---- Output schema (trusted, comes from DB) ----
 class CategoryOut(BaseModel):
-    id: str = Field(alias="_id")
+    id: PyObjectId = Field(alias="_id")
     name: str
     is_active: bool
-    parent_id: str | None = None
+    parent_id: PyObjectId | None = None
     ancestors: list[str] = Field(
         default_factory=list
     )  # denormalized, for fast subtree queries
