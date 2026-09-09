@@ -37,13 +37,14 @@ class ProductOut(BaseModel):
     name: str
     normalized_name: str
     category_id: str
-    description: str
+    description: str | None
     sku: str = Field(alias="sku")
     price: float
     quantity: int
     is_active: bool
     is_featured: bool
 
-    class Config:
-        populate_by_name = True
-        json_encoders: dict[type[ObjectId], type[str]] = {ObjectId: str}
+    model_config = ConfigDict(
+        populate_by_name=True, 
+        arbitrary_types_allowed=True # Necessary to handle third-party BSON types
+    )

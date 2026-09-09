@@ -60,6 +60,10 @@ class CategoryService:
     async def update_category(
         self, category_id: str, data: CategoryUpdateSchema
     ) -> dict[Any, Any] | None:
+        category: dict[Any, Any] | None = await self.get_category_by_id(category_id)
+        if not category:
+            raise CategoryNotExistsError
+
         if data.parent_id:
             if data.parent_id == category_id:
                 raise SameCategoryParentError
