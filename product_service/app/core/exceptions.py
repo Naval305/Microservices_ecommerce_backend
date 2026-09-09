@@ -12,3 +12,11 @@ class CategoryNotExistsError(Exception):
 
 class SameCategoryParentError(Exception):
     pass
+
+
+class ProductExistsError(Exception):
+    pass
+
+
+class ProductNotExistsError(Exception):
+    pass

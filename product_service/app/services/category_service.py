@@ -64,16 +64,24 @@ class CategoryService:
             if data.parent_id == category_id:
                 raise SameCategoryParentError
 
-            parent_category: dict[Any, Any] | None = await self.repository.get_by_id(data.parent_id)
+            parent_category: dict[Any, Any] | None = await self.repository.get_by_id(
+                data.parent_id
+            )
             if not parent_category:
                 raise CategoryNotExistsError
 
-            descendant = await self.repository._find_one({"_id": ObjectId(data.parent_id), "ancestors": category_id})
+            descendant = await self.repository._find_one(
+                {"_id": ObjectId(data.parent_id), "ancestors": category_id}
+            )
             if descendant:
-                raise ValueError("Cannot set a descendant as parent (would create a cycle)")
+                raise ValueError(
+                    "Cannot set a descendant as parent (would create a cycle)"
+                )
 
             new_ancestors: list[Any] = await self.get_ancestors(data.parent_id)
-            await self.repository.update_by_id(category_id, {"ancestors": new_ancestors})
+            await self.repository.update_by_id(
+                category_id, {"ancestors": new_ancestors}
+            )
 
             new_prefix: list[Any] = new_ancestors + [category_id]
             all_descendants = await self.repository.get_many({"ancestors": category_id})
@@ -81,10 +89,14 @@ class CategoryService:
             for child in all_descendants:
                 old_ancestors = child["ancestors"]
                 idx = old_ancestors.index(category_id)
-                relative_tail = old_ancestors[idx + 1:]   # path from category_id down to this child, unchanged
+                relative_tail = old_ancestors[
+                    idx + 1 :
+                ]  # path from category_id down to this child, unchanged
                 child_new_ancestors = new_prefix + relative_tail
-                await self.repository.update_by_id(str(child["_id"]), {"ancestors": child_new_ancestors})
- 
+                await self.repository.update_by_id(
+                    str(child["_id"]), {"ancestors": child_new_ancestors}
+                )
+
         return await self.repository.update_by_id(
             category_id, data.model_dump(exclude_unset=True)
         )

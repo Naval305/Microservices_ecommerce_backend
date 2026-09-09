@@ -1,20 +1,6 @@
-from bson import ObjectId
-from pydantic import BaseModel, Field, GetCoreSchemaHandler
-from pydantic_core import core_schema
+from pydantic import BaseModel, Field
 
-
-class PyObjectId(str):
-    @classmethod
-    def __get_pydantic_core_schema__(
-        cls, source_type, handler: GetCoreSchemaHandler
-    ) -> core_schema.PlainValidatorFunctionSchema:
-        return core_schema.no_info_plain_validator_function(cls.validate)
-
-    @classmethod
-    def validate(cls, v) -> str:
-        if not ObjectId.is_valid(v):
-            raise ValueError("Invalid ObjectId")
-        return str(v)
+from app.utils.helpers import PyObjectId
 
 
 # ---- Input schema (client-supplied, needs strict validation) ----

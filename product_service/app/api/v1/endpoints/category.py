@@ -1,7 +1,5 @@
 from typing import Any
 
-from fastapi import APIRouter, Depends
-
 from app.api.dependencies import get_category_service
 from app.schemas.category_schemas import (
     CategoryCreateSchema,
@@ -10,6 +8,7 @@ from app.schemas.category_schemas import (
 )
 from app.schemas.custom_response import APIResponse
 from app.services.category_service import CategoryService
+from fastapi import APIRouter, Depends
 
 router = APIRouter(prefix="/category", tags=["category"])
 

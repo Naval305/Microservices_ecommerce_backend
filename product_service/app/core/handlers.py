@@ -1,10 +1,9 @@
 import logging
 
+from app.core.exceptions import *
 from fastapi import FastAPI, Request
 from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse
-
-from app.core.exceptions import *
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -64,7 +63,31 @@ async def same_category_parent_error(
 ) -> JSONResponse:
     return JSONResponse(
         status_code=409,
-        content={"success": False, "message": "A category cannot be its own parent", "data": None},
+        content={
+            "success": False,
+            "message": "A category cannot be its own parent",
+            "data": None,
+        },
+    )
+
+
+async def product_exists_handler(
+    request: Request,
+    exc: ProductExistsError,
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=409,
+        content={"success": False, "message": "Product already exists", "data": None},
+    )
+
+
+async def product_not_exists_handler(
+    request: Request,
+    exc: ProductNotExistsError,
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=409,
+        content={"success": False, "message": "Product does not exists", "data": None},
     )
 
 
@@ -78,3 +101,5 @@ def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(CategoryExistsError, category_exists_handler)
     app.add_exception_handler(CategoryNotExistsError, category_not_exists)
     app.add_exception_handler(SameCategoryParentError, same_category_parent_error)
+    app.add_exception_handler(ProductExistsError, product_exists_handler)
+    app.add_exception_handler(ProductNotExistsError, product_not_exists_handler)

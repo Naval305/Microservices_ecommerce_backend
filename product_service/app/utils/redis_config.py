@@ -1,5 +1,6 @@
-from product_service.app.core.config import redis_host
 from redis import asyncio as aioredis
+
+from product_service.app.core.config import redis_host
 
 
 def init_redis_pool():

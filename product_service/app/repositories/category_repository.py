@@ -1,7 +1,7 @@
 from bson import ObjectId
 from pymongo import ReturnDocument
 from pymongo.asynchronous.database import AsyncDatabase
-from pymongo.results import DeleteResult, InsertOneResult, UpdateResult
+from pymongo.results import DeleteResult, UpdateResult
 
 
 class CategoryRepository:
@@ -21,8 +21,8 @@ class CategoryRepository:
         return await self.db.category.find_one(query)
 
     async def create(self, data: dict) -> dict:
-        result: InsertOneResult = await self.db.category.insert_one(data)
-        return await self.db.category.find_one({"_id": result.inserted_id})
+        await self.db.category.insert_one(data)
+        return data
 
     async def update_by_id(self, category_id: str, update: dict) -> dict | None:
         return await self.db.category.find_one_and_update(
